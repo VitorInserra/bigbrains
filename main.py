@@ -1,10 +1,19 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from db import database, engine, metadata
 from models.models import vrdata
 from entities.VRData import VRData, VRDataCreate
+from typing import List
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 metadata.create_all(engine)
 
@@ -35,3 +44,8 @@ async def read_vrdata(data_id: int):
     if data is None:
         raise HTTPException(status_code=404, detail="VR Data not found")
     return data
+
+@app.post("/datadump")
+async def data_dump(data: List[float]):
+    print(data)
+    return "received"

@@ -8,7 +8,8 @@ class VRDataCreate(BaseModel):
 class VRData(BaseModel):
     id: int
     name: str
-    description: str
+    eyeposition: str
+    eyerotation: str
 
     class Config:
         orm_mode = True  # Allows interaction between Pydantic and SQLAlchemy
