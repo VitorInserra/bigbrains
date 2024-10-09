@@ -46,6 +46,7 @@ async def read_vrdata(data_id: int):
     return data
 
 @app.post("/datadump")
-async def data_dump(data: List[float]):
-    print(data)
+async def data_dump(position_data: List[List[float]]): #, rotation_data: List[List[float]]):
+    print(position_data)
+    # print(rotation_data)
     return "received"
