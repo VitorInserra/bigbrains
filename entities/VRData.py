@@ -9,10 +9,11 @@ class VRDataCreate(BaseModel):
 
 class VRData(BaseModel):
     id: int
-    name: str
+    session_id: str
     eyeposition: List[List[float]]
     eyerotation: List[List[float]]
-    timestamp: datetime
+    start_stamp: datetime
+    end_stamp: datetime
 
     class Config:
         orm_mode = True  # Allows interaction between Pydantic and SQLAlchemy
