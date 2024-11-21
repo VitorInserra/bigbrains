@@ -1,33 +1,21 @@
-
+# models.py
 from sqlalchemy import Column, Integer, String, ARRAY, TIMESTAMP, Float, func
 from sqlalchemy.ext.declarative import declarative_base
-from db import engine
+from db import engine  # Import engine from db.py
 
-
+# Define the base class for models
 Base = declarative_base()
 
-
+# Declare the VRDataModel class
 class VRDataModel(Base):
-    __tablename__ = "vr_data"
+    __tablename__ = "vr_data"  # Name of the table in the database
 
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String)
-    eyeposition = Column(ARRAY(Float))
-    eyerotation = Column(ARRAY(Float))
-    start_stamp = Column(TIMESTAMP(timezone=True), server_default=func.now())
-    end_stamp = Column(TIMESTAMP(timezone=True))
+    # Define columns
+    id = Column(Integer, primary_key=True, index=True)  # Primary key
+    eyeposition = Column(ARRAY(Float))  # Store eye position data (list of floats)
+    eyerotation = Column(ARRAY(Float))  # Store eye rotation data (list of floats)
+    start = Column(TIMESTAMP(timezone=True), server_default=func.now())  # Auto-generate timestamp
+    end = Column(TIMESTAMP(timezone=True))
 
-class EEGDataModel(Base):
-    __tablename__ = "eeg_data"
-
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String)
-    start_stamp = Column(TIMESTAMP(timezone=True))
-    tp9 = Column(ARRAY(Float))
-    af7 = Column(ARRAY(Float))
-    af8 = Column(ARRAY(Float))
-    tp10 = Column(ARRAY(Float))
-    end_stamp = Column(TIMESTAMP(timezone=True))
-
-
+# Create the table if it doesn't already exist
 Base.metadata.create_all(bind=engine)
