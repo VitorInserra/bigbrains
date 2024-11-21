@@ -1,114 +1,121 @@
 # main.py
-from fastapi import FastAPI, Depends
+import threading
+import asyncio
+from fastapi import FastAPI, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
-from db import SessionLocal
-from models.models import VRDataModel  # Import your model from models.py
+from db import get_db
+from models.models import VRDataModel, EEGDataModel
+from entities.EEGData import insert_eeg_db
 from pydantic import BaseModel
 from typing import List
 from datetime import datetime
 import uvicorn
 from muselsl import stream, list_muses, record
-import multiprocessing
 import pandas as pd
 import os
+import time
+from contextlib import asynccontextmanager
+
+
+def stream_muse():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    while True:
+        try:
+            muses = list_muses()
+            if muses:
+                try:
+                    print("Starting Muse stream...")
+                    stream(muses[0]["address"])
+                except Exception as e:
+                    print(f"Error streaming Muse: {e}")
+                    time.sleep(5)
+            else:
+                print("No Muse devices found. Retrying in 5 seconds...")
+                time.sleep(5)
+        except Exception as e:
+            print(f"Error in stream_muse: {e}")
+            time.sleep(5)
+
+def call_record_and_insert_eeg_db(db: Session):
+    directory = os.getcwd()
+    filename = os.path.join(directory, f"session_data.csv")
+    
+    print("Starting EEG recording for 10 seconds")
+    record(duration=10, filename=filename)
+    print("Finished EEG recording")
+
+    insert_eeg_db(db)
+
+    print("EEG data inserted into the database and temporary file removed.")
+
+class DataDumpRequest(BaseModel):
+    start_stamp: datetime
+    eye_id: str
+    position_data: List[List[float]]
+    rotation_data: List[List[float]]
+    end_stamp: datetime
 
 app = FastAPI()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    muse_thread = threading.Thread(target=stream_muse, daemon=True)
+    muse_thread.start()
+    print("Started streaming Muse data.")
+    yield
+    print("Application shutdown")
 
-# Dependency to get the database session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-# Define the Pydantic model for the incoming request
-class DataDumpRequest(BaseModel):
-    position_data: List[List[float]]
-    rotation_data: List[List[float]]
-
+app = FastAPI(lifespan=lifespan)
 
 @app.post("/datadump")
-async def data_dump(data: DataDumpRequest, db: Session = Depends(get_db)):
-    # Flatten the position_data and rotation_data lists
-    print(data.position_data)
-    flattened_eyeposition = [item for item in data.position_data]
-    flattened_eyerotation = [item for item in data.rotation_data]
+async def data_dump(data: DataDumpRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    start_stamp = data.start_stamp
+    eye_id = data.eye_id
+    flattened_eyeposition = data.position_data
+    flattened_eyerotation = data.rotation_data
+    end_stamp = data.end_stamp
 
-    # Create an instance of VRDataModel
     vr_data = VRDataModel(
+        start_stamp=start_stamp,
+        eye_id=eye_id,
         eyeposition=flattened_eyeposition,
         eyerotation=flattened_eyerotation,
-        start=datetime.now(),
+        end_stamp=end_stamp
     )
 
-    # Add the new record to the database
     db.add(vr_data)
     db.commit()
-    db.refresh(vr_data)  # Refresh to get the generated ID
+    db.refresh(vr_data)
 
-    return vr_data
-
+    print("Saved VR data to db.")
+    
+    background_tasks.add_task(call_record_and_insert_eeg_db, db)
+    
+    return {"message": "VR data saved and EEG recording started."}
 
 @app.get("/getdata")
 async def get_data(db: Session = Depends(get_db)):
     results = db.query(VRDataModel).all()
+    data_list = []
     for record in results:
-        print(f"ID: {record.id}")
-        print(f"Eye Position: {record.eyeposition}")
-        print(f"Eye Rotation: {record.eyerotation}")
-
-
-def stream_muse():
-    muses = list_muses()
-    stream(muses[0]["address"])
-
+        data_list.append({
+            "ID": record.id,
+            "Eye Position": record.eyeposition,
+            "Eye Rotation": record.eyerotation
+        })
+    return data_list
 
 @app.get("/stream")
-async def print_stream():
-    directory = os.getcwd()
-    filename = os.path.join(directory, "session_data.csv")
-    record(duration=10, filename=filename)
-
-    # md = MetaData("Symbol", "Name", "IPO Year", "Sector", "Industry")
-
-    # scnr = pd.read_csv()
-    # df = pd.DataFrame(scnr)
-
-    # for i in range(len(df)):
-    #     print(i)
-    #     temp = df.loc[i]
-
-    #     symbol = temp[md.symbol]
-    #     symbol = edit_names(symbol)
-
-    #     name = temp[md.name]
-    #     name = edit_names(name)
-
-    #     ipo_year = temp[md.ipo_year]
-    #     ipo_year = edit_names(ipo_year)
-
-    #     sector = temp[md.sector]
-    #     sector = edit_names(sector)
-
-    #     industry = temp[md.industry]
-    #     industry = edit_names(industry)
-
-    #     cur.execute(f"select from stock where symbol = '{symbol}'")
-    #     if cur.fetchone() == None:
-    #         cur.execute(
-    #             f"insert into stock (id, frequency, symbol, name, ipoyear, sector, industry) values ('{i}', '{0}', '{symbol}', '{name}', '{ipo_year}', '{sector}', '{industry}')"
-    #         )
-
-    # conn.commit()
-
-    # cur.close()
-    # conn.close()
-
+async def eeg_stream(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    background_tasks.add_task(call_record_and_insert_eeg_db, db)
+    print("Started EEG recording")
+    return {"message": "EEG recording started"}
 
 if __name__ == "__main__":
-    p = multiprocessing.Process(target=stream_muse)
-    p.start()
-    uvicorn.run("main:app", host="0.0.0.0", port=80)
+    f = open("session_data.csv", "w")
+    f.truncate()
+    f.write("timestamp,tp9,af7,af8,tp10,hr")
+    f.close()
+    uvicorn.run("main:app", host="0.0.0.0", port=8083, reload=False)
