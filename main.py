@@ -1,4 +1,3 @@
-# main.py
 import threading
 import asyncio
 from fastapi import FastAPI, Depends, BackgroundTasks
@@ -10,45 +9,54 @@ from pydantic import BaseModel
 from typing import List
 from datetime import datetime
 import uvicorn
-from muselsl import stream, list_muses, record
+from muselsl import stream, list_muses
 import pandas as pd
-import os
 import time
+from collections import deque
 from contextlib import asynccontextmanager
 
+BUFFER_SIZE = 256*10
+eeg_buffer = deque(maxlen=BUFFER_SIZE)
+buffer_lock = threading.Lock()
 
-def stream_muse():
+def continuous_stream():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    
+
+    def on_data_received(timestamp, data, aux, markers):
+        with buffer_lock:
+            eeg_buffer.append((timestamp, data))
+
     while True:
         try:
             muses = list_muses()
             if muses:
-                try:
-                    print("Starting Muse stream...")
-                    stream(muses[0]["address"])
-                except Exception as e:
-                    print(f"Error streaming Muse: {e}")
-                    time.sleep(5)
+                stream(address=muses[0]['address'], callback=on_data_received)
             else:
-                print("No Muse devices found. Retrying in 5 seconds...")
                 time.sleep(5)
         except Exception as e:
-            print(f"Error in stream_muse: {e}")
             time.sleep(5)
 
-def call_record_and_insert_eeg_db(db: Session):
-    directory = os.getcwd()
-    filename = os.path.join(directory, f"session_data.csv")
-    
-    print("Starting EEG recording for 10 seconds")
-    record(duration=10, filename=filename)
-    print("Finished EEG recording")
+def extract_recent_eeg_data():
+    with buffer_lock:
+        return list(eeg_buffer)
 
-    insert_eeg_db(db)
+def save_eeg_data_to_file_and_db(db: Session):
+    data = extract_recent_eeg_data()
+    if not data:
+        print("No data available to save.")
+        return
 
-    print("EEG data inserted into the database and temporary file removed.")
+    print(f"Saving {len(data)} rows of EEG data.")  # Log number of rows
+    df = pd.DataFrame(data, columns=["timestamp", "data"])
+    channel_data = pd.DataFrame(df["data"].tolist(), columns=["tp9", "af7", "af8", "tp10", "aux"])
+    df = pd.concat([df["timestamp"], channel_data], axis=1)
+
+    filename = f"eeg_data_{datetime.now().strftime('%Y%m%d%H%M%S')}.csv"
+    df.to_csv(filename, index=False)
+    print(f"Saved EEG data to {filename}")
+
+    insert_eeg_db(db, df)
 
 class DataDumpRequest(BaseModel):
     start_stamp: datetime
@@ -57,15 +65,11 @@ class DataDumpRequest(BaseModel):
     rotation_data: List[List[float]]
     end_stamp: datetime
 
-app = FastAPI()
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    muse_thread = threading.Thread(target=stream_muse, daemon=True)
-    muse_thread.start()
-    print("Started streaming Muse data.")
+    stream_thread = threading.Thread(target=continuous_stream, daemon=True)
+    stream_thread.start()
     yield
-    print("Application shutdown")
 
 app = FastAPI(lifespan=lifespan)
 
@@ -89,33 +93,13 @@ async def data_dump(data: DataDumpRequest, background_tasks: BackgroundTasks, db
     db.commit()
     db.refresh(vr_data)
 
-    print("Saved VR data to db.")
-    
-    background_tasks.add_task(call_record_and_insert_eeg_db, db)
-    
-    return {"message": "VR data saved and EEG recording started."}
-
-@app.get("/getdata")
-async def get_data(db: Session = Depends(get_db)):
-    results = db.query(VRDataModel).all()
-    data_list = []
-    for record in results:
-        data_list.append({
-            "ID": record.id,
-            "Eye Position": record.eyeposition,
-            "Eye Rotation": record.eyerotation
-        })
-    return data_list
+    background_tasks.add_task(save_eeg_data_to_file_and_db, db)
+    return {"message": "VR data saved and recent EEG data recorded."}
 
 @app.get("/stream")
 async def eeg_stream(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    background_tasks.add_task(call_record_and_insert_eeg_db, db)
-    print("Started EEG recording")
-    return {"message": "EEG recording started"}
+    background_tasks.add_task(save_eeg_data_to_file_and_db, db)
+    return {"message": "Recent EEG data saved."}
 
 if __name__ == "__main__":
-    f = open("session_data.csv", "w")
-    f.truncate()
-    f.write("timestamp,tp9,af7,af8,tp10,hr")
-    f.close()
     uvicorn.run("main:app", host="0.0.0.0", port=8083, reload=False)
