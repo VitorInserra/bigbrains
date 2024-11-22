@@ -80,7 +80,7 @@ async def eeg_stream(db: Session = Depends(get_db)):
 def call_record():
     directory = os.getcwd()
     filename = os.path.join(directory, "session_data.csv")
-    record(duration=100, filename=filename)
+    record(duration=0, filename=filename)
     print("Finished recording Muse")
 
 @app.get("/db-insert-eeg")
