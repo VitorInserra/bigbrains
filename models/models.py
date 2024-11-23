@@ -18,8 +18,8 @@ class VRDataModel(Base):
     start_stamp = Column(TIMESTAMP(timezone=True), server_default=func.now())
     end_stamp = Column(TIMESTAMP(timezone=True))
 
-class EEGDataModel(Base):
-    __tablename__ = "eeg_data"
+class MuseDataModel(Base):
+    __tablename__ = "muse_data"
 
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(String)

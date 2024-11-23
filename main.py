@@ -3,7 +3,7 @@ import asyncio
 from fastapi import FastAPI, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from db import get_db
-from models.models import VRDataModel, EEGDataModel
+from models.models import VRDataModel, MuseDataModel
 from entities.EEGData import insert_eeg_db
 from pydantic import BaseModel
 from typing import List
@@ -38,7 +38,7 @@ def stream_muse():
 def start_muse_streaming():
     muse_thread = mp.Process(target=stream_muse, daemon=True)
     muse_thread.start()
-    print("Muse streaming process tarted.")
+    print("Muse streaming process started.")
     return muse_thread
 
 class DataDumpRequest(BaseModel):
@@ -71,7 +71,7 @@ async def data_dump(data: DataDumpRequest, background_tasks: BackgroundTasks, db
     # background_tasks.add_task(save_eeg_data_to_file_and_db, db)
     return {"message": "VR data saved and recent EEG data recorded."}
 
-@app.get("/stream")
+
 async def eeg_stream(db: Session = Depends(get_db)):
     p = mp.Process(target=call_record)
     p.start()
@@ -80,7 +80,7 @@ async def eeg_stream(db: Session = Depends(get_db)):
 def call_record():
     directory = os.getcwd()
     filename = os.path.join(directory, "session_data.csv")
-    record(duration=0, filename=filename)
+    record(duration=100, filename=filename)
     print("Finished recording Muse")
 
 @app.get("/db-insert-eeg")
@@ -88,8 +88,13 @@ async def db_insert_eeg(db: Session = Depends(get_db)):
     insert_eeg_db(db)
 
 if __name__ == "__main__":
+    f = open("session_data.csv", "w")
+    f.truncate()
+    f.write("timestamp,tp9,af7,af8,tp10,hr\n")
+    f.close()
     start_muse_streaming()
-    time.sleep(10)
+    time.sleep(15)
+    input("Click enter if streaming:")
     record_thread = mp.Process(target=call_record, daemon=True)
     record_thread.start()
 

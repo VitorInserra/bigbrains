@@ -1,20 +1,20 @@
 from datetime import datetime
 import pandas as pd
 from sqlalchemy.orm import Session
-from models.models import EEGDataModel
+from models.models import MuseDataModel
 
 
 def insert_eeg_db(db: Session):
     scnr = pd.read_csv("session_data.csv")
     df = pd.DataFrame(scnr)
     try:
-        session_dump = {'start_stamp': datetime.fromtimestamp(df.iloc[0]['timestamp']), 'end_stamp': datetime.fromtimestamp(df.iloc[len(df.loc[0]) - 1]['timestamp'])}
+        session_dump = {'start_stamp': datetime.fromtimestamp(df.iloc[0]['timestamp']), 'end_stamp': datetime.fromtimestamp(df.iloc[-1]['timestamp'])}
         for key in df.columns:
             if key != "timestamp":
                 session_dump[key] = list(df.xs(key, axis=1))
 
 
-        eeg_data = EEGDataModel(
+        eeg_data = MuseDataModel(
             start_stamp=session_dump['start_stamp'],
             tp9=session_dump['tp9'],
             af7=session_dump['af7'],
@@ -32,6 +32,6 @@ def insert_eeg_db(db: Session):
 
     f = open("session_data.csv", "w")
     f.truncate()
-    f.write("timestamp,tp9,af7,af8,tp10,hr")
+    f.write("timestamp,tp9,af7,af8,tp10,hr\n")
     f.close()
     print("Saved to eeg to database")
