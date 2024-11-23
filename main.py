@@ -14,6 +14,7 @@ import pandas as pd
 import time
 from contextlib import asynccontextmanager
 import multiprocessing as mp
+import threading
 
 
 app = FastAPI()
@@ -49,7 +50,7 @@ class DataDumpRequest(BaseModel):
     end_stamp: datetime
 
 @app.post("/datadump")
-async def data_dump(data: DataDumpRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def data_dump(data: DataDumpRequest, db: Session = Depends(get_db)):
     start_stamp = data.start_stamp
     eye_id = data.eye_id
     flattened_eyeposition = data.position_data
@@ -77,25 +78,34 @@ async def eeg_stream(db: Session = Depends(get_db)):
     p.start()
     print("Started recording Muse")
 
+@app.get("/record")
 def call_record():
     directory = os.getcwd()
     filename = os.path.join(directory, "session_data.csv")
-    record(duration=100, filename=filename)
+    record(duration=0, filename=filename)
     print("Finished recording Muse")
+
 
 @app.get("/db-insert-eeg")
 async def db_insert_eeg(db: Session = Depends(get_db)):
     insert_eeg_db(db)
 
-if __name__ == "__main__":
-    f = open("session_data.csv", "w")
-    f.truncate()
-    f.write("timestamp,tp9,af7,af8,tp10,hr\n")
-    f.close()
-    start_muse_streaming()
-    time.sleep(15)
-    input("Click enter if streaming:")
-    record_thread = mp.Process(target=call_record, daemon=True)
-    record_thread.start()
 
+def init_record():
+    while True:
+        f = open("session_data.csv", "w")
+        f.truncate()
+        f.write("timestamp,tp9,af7,af8,tp10,hr\n")
+        f.close()
+        start_muse_streaming()
+        time.sleep(15)
+        input("Click enter to start recording:")
+        record_proc = mp.Process(target=call_record, daemon=True)
+        record_proc.start()
+        input("Click enter to stop recording:")
+        record_proc.kill()
+
+if __name__ == "__main__":
+    # t = threading.Thread(target=init_record)
+    # t.start()
     uvicorn.run("main:app", host="0.0.0.0", port=8083, reload=False)
