@@ -106,6 +106,6 @@ def init_record():
         record_proc.kill()
 
 if __name__ == "__main__":
-    # t = threading.Thread(target=init_record)
-    # t.start()
+    t = threading.Thread(target=init_record)
+    t.start()
     uvicorn.run("main:app", host="0.0.0.0", port=8083, reload=False)
