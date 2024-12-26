@@ -2,7 +2,7 @@ import usb.core
 import usb.util
 import time
 
-dev = usb.core.find(idVendor=0x1234, idProduct=0xED02)
+dev = usb.core.find(idVendor=, idProduct=)
 
 if dev:
     print(dev)
