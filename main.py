@@ -132,6 +132,7 @@ def init_record():
         time.sleep(10)
         input("Click enter to stop recording:")
         record_proc.kill()
+        print("Recording stopped.")
 
 if __name__ == "__main__":
     t = threading.Thread(target=init_record)
