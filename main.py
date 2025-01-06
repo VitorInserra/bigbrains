@@ -3,8 +3,8 @@ import asyncio
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from db import get_db
-from models.VRDataModel import VRDataModel, MuseDataModel
-from entities.EEGData import insert_eeg_db
+from models.VRDataModel import VRDataModel
+from db_handling.MuseData import insert_eeg_db
 from pydantic import BaseModel
 from typing import List
 from datetime import datetime
@@ -16,9 +16,13 @@ import multiprocessing as mp
 import threading
 import uuid
 from contextlib import asynccontextmanager
-
+import muse_record
+import EpocX
+from db_handling.VRData import DataDumpRequest
 
 global_session_id: str = None
+
+
 def set_global_session_id():
     """Initialize the global session ID."""
     global global_session_id
@@ -33,39 +37,7 @@ def get_global_session_id():
         raise ValueError("Global session_id is not set.")
     return global_session_id
 
-# Create FastAPI app with the lifespan
 
-def stream_muse():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    while True:
-        try:
-            muses = list_muses()
-            if muses:
-                print(f"Connecting to Muse: {muses[0]['name']}...")
-                stream(muses[0]["address"])
-            else:
-                print("No Muse devices found. Retrying in 5 seconds...")
-                time.sleep(5)
-        except Exception as e:
-            print(f"Error in Muse streaming: {e}. Retrying in 5 seconds...")
-            time.sleep(5)
-
-
-def start_muse_streaming():
-    muse_thread = mp.Process(target=stream_muse, daemon=True)
-    muse_thread.start()
-    print("Muse streaming process started.")
-    return muse_thread
-
-
-class DataDumpRequest(BaseModel):
-    start_stamp: datetime
-    eye_id: str
-    position_data: List[List[float]]
-    rotation_data: List[List[float]]
-    end_stamp: datetime
 
 
 async def eeg_stream(db: Session = Depends(get_db)):
@@ -80,13 +52,16 @@ app = FastAPI()
 async def set_session_id():
     set_global_session_id()
 
-@app.get("/record")
-def call_record():
+@app.get("/muse-record")
+def call_muse_record():
     directory = os.getcwd()
     filename = os.path.join(directory, "session_data.csv")
     record(duration=0, filename=filename)
     print("Finished recording Muse")
 
+@app.get("/record")
+def call_record():
+    ''''''
 
 @app.get("/db-insert-eeg")
 async def db_insert_eeg(db: Session = Depends(get_db)):
@@ -118,14 +93,14 @@ async def data_dump(data: DataDumpRequest, db: Session = Depends(get_db)):
     return {"message": "VR data saved and recent EEG data recorded."}
 
 
-def init_record():
+def init_muse_record():
     while True:
         f = open("session_data.csv", "w")
         f.truncate()
         f.write("timestamp,tp9,af7,af8,tp10,hr\n")
         f.close()
-        start_muse_streaming()
-        time.sleep(20)
+        muse_record.start_muse_streaming()
+        time.sleep(3)
         input("Click enter to start recording:")
         record_proc = mp.Process(target=call_record, daemon=True)
         record_proc.start()
@@ -134,7 +109,18 @@ def init_record():
         record_proc.kill()
         print("Recording stopped.")
 
+def init_epoc_record():
+    while True:
+        time.sleep(3)
+        input("Click enter to start recording:")
+        record_proc = mp.Process(target=EpocX.main, daemon=True)
+        record_proc.start()
+        time.sleep(3)
+        input("Click enter to stop recording:")
+        record_proc.kill()
+        print("Recording stopped.")
+
 if __name__ == "__main__":
-    t = threading.Thread(target=init_record)
+    t = threading.Thread(target=init_epoc_record)
     t.start()
     uvicorn.run("main:app", host="0.0.0.0", port=8083, reload=False)

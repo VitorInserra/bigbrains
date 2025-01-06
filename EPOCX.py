@@ -4,7 +4,8 @@ import json
 import time
 import ssl
 import os
-
+import pandas as pd
+# from db_handling.EpocXData import 
 
 CORTEX_URL = "wss://127.0.0.1:6868"
 
@@ -81,10 +82,38 @@ async def subscribe_to_streams(websocket, cortex_token, session_id):
     )
 
 async def handle_incoming_data(websocket):
+    pow_data_batch = []
+    batch_size = 10
     while True:
         data_msg = await websocket.recv()
         data = json.loads(data_msg)
-        print("Incoming POW data:", data)
+        if "pow" in data:
+            channel_values = data["pow"]
+            timestamp = data.get("time", time.time())
+            row = {
+                "timestamp": timestamp,
+                "AF3": channel_values[0],
+                "F7":  channel_values[1],
+                "F3":  channel_values[2],
+                "FC5": channel_values[3],
+                "T7":  channel_values[4],
+                "P7":  channel_values[5],
+                "O1":  channel_values[6],
+                "O2":  channel_values[7],
+                "P8":  channel_values[8],
+                "T8":  channel_values[9],
+                "FC6": channel_values[10],
+                "F4":  channel_values[11],
+                "F8":  channel_values[12],
+                "AF4": channel_values[13],
+            }
+            pow_data_batch.append(row)
+
+            if len(pow_data_batch) >= batch_size:
+                df = pd.DataFrame(pow_data_batch)
+                EpocXDataModel.insert_eeg_db(db, session_id, df)
+                pow_data_batch.clear()
+
 
 async def main():
     async with websockets.connect(CORTEX_URL, ssl=ssl_context) as websocket:
@@ -119,6 +148,7 @@ async def main():
         await subscribe_to_streams(websocket, cortex_token, session_id)
 
         await handle_incoming_data(websocket)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

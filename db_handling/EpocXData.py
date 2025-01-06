@@ -4,9 +4,7 @@ from sqlalchemy.orm import Session
 from models.EpocXDataModel import EpocXDataModel
 
 
-def insert_eeg_db(db: Session, session_id: str):
-    scnr = pd.read_csv("epoc_data.csv")
-    df = pd.DataFrame(scnr)
+def insert_eeg_db(db: Session, session_id: str, df: pd.DataFrame):
 
     try:
         session_dump = {
@@ -45,7 +43,3 @@ def insert_eeg_db(db: Session, session_id: str):
 
     except Exception as e:
         print(f"No data or error encountered: {str(e)}")
-
-    with open("epoc_data.csv", "w") as f:
-        f.truncate()
-        f.write("timestamp,AF3,F7,F3,FC5,T7,P7,O1,O2,P8,T8,FC6,F4,F8,AF4\n")

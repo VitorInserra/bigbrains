@@ -16,3 +16,11 @@ class VRData(BaseModel):
 
     class Config:
         orm_mode = True  # Allows interaction between Pydantic and SQLAlchemy
+
+class DataDumpRequest(BaseModel):
+    start_stamp: datetime
+    eye_id: str
+    position_data: List[List[float]]
+    rotation_data: List[List[float]]
+    end_stamp: datetime
+    
