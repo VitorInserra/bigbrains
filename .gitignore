@@ -1,0 +1,57 @@
+# Python cache files
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+
+# Cache directories
+__pycache__/
+
+# Virtual environment
+env/
+venv/
+ENV/
+.venv/
+
+# Python bytecode
+*.py[co]
+
+# IDE specific files
+.idea/
+.vscode/
+*.sublime-workspace
+
+# Logs and local files
+*.log
+*.sqlite3
+*.bak
+*.tmp
+
+# Config and deployment files
+*.env
+.DS_Store
+
+# Compiled files
+*.so
+*.dll
+*.dylib
+
+# Test outputs
+coverage/
+pytest_cache/
+htmlcov/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Package build files
+build/
+dist/
+*.egg-info/
+
+# Static files
+staticfiles/
+node_modules/
+
+# Ignore by mistake
+!.gitignore

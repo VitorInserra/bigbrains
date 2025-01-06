@@ -1,7 +1,7 @@
 from datetime import datetime
 import pandas as pd
 from sqlalchemy.orm import Session
-from models.models import MuseDataModel
+from models.MuseDataModel import MuseDataModel
 
 
 def insert_eeg_db(db: Session, session_id):

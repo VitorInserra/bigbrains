@@ -3,7 +3,7 @@ import asyncio
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from db import get_db
-from models.models import VRDataModel, MuseDataModel
+from models.VRDataModel import VRDataModel, MuseDataModel
 from entities.EEGData import insert_eeg_db
 from pydantic import BaseModel
 from typing import List
