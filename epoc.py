@@ -26,7 +26,7 @@ def decode_packet(packet):
     return header, channels
 
 
-dev = usb.core.find(idVendor=0x1234, idProduct=0xED02)
+dev = usb.core.find(idVendor=, idProduct=)
 
 if dev.is_kernel_driver_active(1):
     dev.detach_kernel_driver(1)
