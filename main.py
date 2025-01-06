@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from db import get_db
 from models.VRDataModel import VRDataModel
-from db_handling.MuseData import insert_eeg_db
+from db_handling.EpocXData import insert_eeg_db
 from pydantic import BaseModel
 from typing import List
 from datetime import datetime
@@ -66,7 +66,10 @@ def call_record():
 @app.get("/db-insert-eeg")
 async def db_insert_eeg(db: Session = Depends(get_db)):
     session_id = get_global_session_id()
-    insert_eeg_db(db, session_id)
+    df = pd.DataFrame(EpocX.pow_data_batch)
+    print(df)
+    EpocX.pow_data_batch.clear()
+    insert_eeg_db(db, session_id, df)
 
 
 @app.post("/datadump")

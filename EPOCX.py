@@ -4,8 +4,14 @@ import json
 import time
 import ssl
 import os
+import uuid
+import threading
 import pandas as pd
-# from db_handling.EpocXData import 
+from db_handling.EpocXData import insert_eeg_db
+from sqlalchemy.orm import Session
+from fastapi import FastAPI, Depends
+from db import get_db
+
 
 CORTEX_URL = "wss://127.0.0.1:6868"
 
@@ -14,16 +20,13 @@ CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
 
 ssl_context = ssl._create_unverified_context()
 
+
 def create_payload(method, params, request_id):
     """
     Create a JSON-RPC 2.0 payload.
     """
-    return {
-        "jsonrpc": "2.0",
-        "method": method,
-        "params": params,
-        "id": request_id
-    }
+    return {"jsonrpc": "2.0", "method": method, "params": params, "id": request_id}
+
 
 async def send_json_rpc(websocket, method, params, request_id):
     """
@@ -34,14 +37,16 @@ async def send_json_rpc(websocket, method, params, request_id):
     response = await websocket.recv()
     return json.loads(response)
 
+
 async def request_access(websocket, client_id, client_secret):
     print("==== 1) requestAccess ====")
     return await send_json_rpc(
         websocket,
         "requestAccess",
         {"clientId": client_id, "clientSecret": client_secret},
-        request_id=1
+        request_id=1,
     )
+
 
 async def control_device(websocket, command, request_id, headset_id=None):
     print(f"\n==== controlDevice ({command}) ====")
@@ -50,9 +55,11 @@ async def control_device(websocket, command, request_id, headset_id=None):
         params["headset"] = headset_id
     return await send_json_rpc(websocket, "controlDevice", params, request_id)
 
+
 async def query_headsets(websocket):
     print("\n==== 3) queryHeadsets ====")
     return await send_json_rpc(websocket, "queryHeadsets", {}, request_id=3)
+
 
 async def authorize(websocket, client_id, client_secret):
     print("\n==== 5) authorize ====")
@@ -60,8 +67,9 @@ async def authorize(websocket, client_id, client_secret):
         websocket,
         "authorize",
         {"clientId": client_id, "clientSecret": client_secret, "debit": 1},
-        request_id=5
+        request_id=5,
     )
+
 
 async def create_session(websocket, cortex_token, headset_id):
     print("\n==== 6) createSession ====")
@@ -69,8 +77,9 @@ async def create_session(websocket, cortex_token, headset_id):
         websocket,
         "createSession",
         {"cortexToken": cortex_token, "headset": headset_id, "status": "open"},
-        request_id=6
+        request_id=6,
     )
+
 
 async def subscribe_to_streams(websocket, cortex_token, session_id):
     print("\n==== subscribe (band power) ====")
@@ -78,12 +87,12 @@ async def subscribe_to_streams(websocket, cortex_token, session_id):
         websocket,
         "subscribe",
         {"cortexToken": cortex_token, "session": session_id, "streams": ["pow"]},
-        request_id=7
+        request_id=7,
     )
 
+pow_data_batch = []
 async def handle_incoming_data(websocket):
-    pow_data_batch = []
-    batch_size = 10
+    batch_size = -1
     while True:
         data_msg = await websocket.recv()
         data = json.loads(data_msg)
@@ -93,30 +102,31 @@ async def handle_incoming_data(websocket):
             row = {
                 "timestamp": timestamp,
                 "AF3": channel_values[0],
-                "F7":  channel_values[1],
-                "F3":  channel_values[2],
+                "F7": channel_values[1],
+                "F3": channel_values[2],
                 "FC5": channel_values[3],
-                "T7":  channel_values[4],
-                "P7":  channel_values[5],
-                "O1":  channel_values[6],
-                "O2":  channel_values[7],
-                "P8":  channel_values[8],
-                "T8":  channel_values[9],
+                "T7": channel_values[4],
+                "P7": channel_values[5],
+                "O1": channel_values[6],
+                "O2": channel_values[7],
+                "P8": channel_values[8],
+                "T8": channel_values[9],
                 "FC6": channel_values[10],
-                "F4":  channel_values[11],
-                "F8":  channel_values[12],
+                "F4": channel_values[11],
+                "F8": channel_values[12],
                 "AF4": channel_values[13],
             }
             pow_data_batch.append(row)
 
-            if len(pow_data_batch) >= batch_size:
+            if len(pow_data_batch) == batch_size:
                 df = pd.DataFrame(pow_data_batch)
-                EpocXDataModel.insert_eeg_db(db, session_id, df)
+                print(df)
                 pow_data_batch.clear()
 
 
 async def main():
     async with websockets.connect(CORTEX_URL, ssl=ssl_context) as websocket:
+
         resp = await request_access(websocket, CLIENT_ID, CLIENT_SECRET)
         print("requestAccess response:", resp)
 
@@ -151,4 +161,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run()
