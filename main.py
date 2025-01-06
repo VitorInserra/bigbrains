@@ -112,15 +112,15 @@ def init_muse_record():
         record_proc.kill()
         print("Recording stopped.")
 
+
 def init_epoc_record():
     while True:
         time.sleep(3)
         input("Click enter to start recording:")
-        record_proc = mp.Process(target=EpocX.main, daemon=True)
-        record_proc.start()
+        asyncio.run(EpocX.main())
         time.sleep(3)
         input("Click enter to stop recording:")
-        record_proc.kill()
+        return
         print("Recording stopped.")
 
 if __name__ == "__main__":
