@@ -59,10 +59,6 @@ def call_muse_record():
     record(duration=0, filename=filename)
     print("Finished recording Muse")
 
-@app.get("/record")
-def call_record():
-    ''''''
-
 @app.get("/db-insert-eeg")
 async def db_insert_eeg(db: Session = Depends(get_db)):
     session_id = get_global_session_id()

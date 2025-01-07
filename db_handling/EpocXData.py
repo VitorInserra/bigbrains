@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from models.EpocXDataModel import EpocXDataModel
 
 
+
 def insert_eeg_db(db: Session, session_id: str, df: pd.DataFrame):
 
     try:

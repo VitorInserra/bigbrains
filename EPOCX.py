@@ -1,6 +1,7 @@
 import asyncio
 import websockets
 import json
+from datetime import datetime
 import time
 import ssl
 import os
@@ -98,9 +99,8 @@ async def handle_incoming_data(websocket):
         data = json.loads(data_msg)
         if "pow" in data:
             channel_values = data["pow"]
-            timestamp = data.get("time", time.time())
             row = {
-                "timestamp": timestamp,
+                "timestamp": data["time"],
                 "AF3": channel_values[0],
                 "F7": channel_values[1],
                 "F3": channel_values[2],
@@ -116,6 +116,7 @@ async def handle_incoming_data(websocket):
                 "F8": channel_values[12],
                 "AF4": channel_values[13],
             }
+
             pow_data_batch.append(row)
 
             if len(pow_data_batch) == batch_size:
@@ -161,4 +162,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run()
+    asyncio.run(main())
