@@ -15,6 +15,7 @@ class VRDataModel(Base):
     eye_id = Column(String)
     start_stamp = Column(TIMESTAMP(timezone=True), server_default=func.now())
     end_stamp = Column(TIMESTAMP(timezone=True))
-
+    current_score = Column(Integer)
+    rotation_quantity = Column(Integer)
 
 Base.metadata.create_all(bind=engine)

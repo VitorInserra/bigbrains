@@ -75,6 +75,8 @@ async def data_dump(data: DataDumpRequest, db: Session = Depends(get_db)):
     flattened_eyeposition = data.position_data
     flattened_eyerotation = data.rotation_data
     end_stamp = data.end_stamp
+    current_score = data.current_score
+    rotation_quantity = data.rotation_quantity
 
     vr_data = VRDataModel(
         start_stamp=start_stamp,
@@ -83,6 +85,8 @@ async def data_dump(data: DataDumpRequest, db: Session = Depends(get_db)):
         eyeposition=flattened_eyeposition,
         eyerotation=flattened_eyerotation,
         end_stamp=end_stamp,
+        current_score=current_score,
+        rotation_quantity=rotation_quantity
     )
 
     db.add(vr_data)

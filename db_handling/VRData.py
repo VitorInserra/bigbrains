@@ -13,6 +13,8 @@ class VRData(BaseModel):
     eyeposition: List[List[float]]
     eyerotation: List[List[float]]
     timestamp: datetime
+    current_score: int
+    rotation_quantity: List[List[float]]
 
     class Config:
         orm_mode = True  # Allows interaction between Pydantic and SQLAlchemy
@@ -23,4 +25,6 @@ class DataDumpRequest(BaseModel):
     position_data: List[List[float]]
     rotation_data: List[List[float]]
     end_stamp: datetime
+    current_score: int
+    rotation_quantity: List[List[float]]
     
