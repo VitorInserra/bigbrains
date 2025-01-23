@@ -17,5 +17,6 @@ class VRDataModel(Base):
     end_stamp = Column(TIMESTAMP(timezone=True))
     current_score = Column(Integer)
     rotation_quantity = Column(Integer)
+    description = Column(String)
 
 Base.metadata.create_all(bind=engine)
