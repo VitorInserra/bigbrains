@@ -7,8 +7,7 @@ Base = declarative_base()
 class MuseDataModel(Base):
     __tablename__ = "muse_data"
 
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String)
+    session_id = Column(String, primary_key=True, index=True)
     start_stamp = Column(TIMESTAMP(timezone=True))
     tp9 = Column(ARRAY(Float))
     af7 = Column(ARRAY(Float))

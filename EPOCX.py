@@ -12,12 +12,15 @@ from db_handling.EpocXData import insert_eeg_db
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, Depends
 from db import get_db
-
+from dotenv import load_dotenv
 
 CORTEX_URL = "wss://127.0.0.1:6868"
 
+load_dotenv()
+
 CLIENT_ID = os.environ.get("CLIENT_ID")
 CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
+print(CLIENT_ID)
 
 ssl_context = ssl._create_unverified_context()
 

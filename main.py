@@ -1,15 +1,11 @@
 import os
 import asyncio
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from sqlalchemy.orm import Session
 from db import get_db
 from models.VRDataModel import VRDataModel
 from db_handling.EpocXData import insert_eeg_db
-from pydantic import BaseModel
-from typing import List
-from datetime import datetime
 import uvicorn
-from muselsl import stream, list_muses, record
 import pandas as pd
 import time
 import multiprocessing as mp
@@ -18,7 +14,10 @@ import uuid
 from contextlib import asynccontextmanager
 import muse_record
 import EpocX
-from db_handling.VRData import DataDumpRequest
+from db_handling.VRData import VRData
+from fastapi import FastAPI, Depends
+from pydantic import BaseModel
+from typing import List
 
 global_session_id: str = None
 
@@ -38,8 +37,6 @@ def get_global_session_id():
     return global_session_id
 
 
-
-
 async def eeg_stream(db: Session = Depends(get_db)):
     p = mp.Process(target=call_record)
     p.start()
@@ -48,9 +45,17 @@ async def eeg_stream(db: Session = Depends(get_db)):
 
 app = FastAPI()
 
+
 @app.get("/")
 async def set_session_id():
+    start = time.time()
     set_global_session_id()
+    t = threading.Thread(target=init_epoc_record)
+    t.start()
+    time.sleep(3)
+    print(time.time() - start)
+    return
+
 
 @app.get("/muse-record")
 def call_muse_record():
@@ -58,6 +63,7 @@ def call_muse_record():
     filename = os.path.join(directory, "session_data.csv")
     record(duration=0, filename=filename)
     print("Finished recording Muse")
+
 
 @app.get("/db-insert-eeg")
 async def db_insert_eeg(db: Session = Depends(get_db)):
@@ -69,14 +75,18 @@ async def db_insert_eeg(db: Session = Depends(get_db)):
 
 
 @app.post("/datadump")
-async def data_dump(data: DataDumpRequest, db: Session = Depends(get_db)):
+async def data_dump(data: VRData, db: Session = Depends(get_db)):
     start_stamp = data.start_stamp
     eye_id = data.eye_id
-    flattened_eyeposition = data.position_data
-    flattened_eyerotation = data.rotation_data
+    flattened_eyeposition = data.eyeposition
+    flattened_eyerotation = data.eyerotation
     end_stamp = data.end_stamp
-    current_score = data.current_score
-    rotation_quantity = data.rotation_quantity
+    score = data.score
+    test_version = data.test_version
+    end_timer = data.end_timer
+    initial_timer = data.initial_timer
+    rotation_speed = data.rotation_speed
+    obj_rotation = data.obj_rotation
 
     vr_data = VRDataModel(
         start_stamp=start_stamp,
@@ -85,8 +95,13 @@ async def data_dump(data: DataDumpRequest, db: Session = Depends(get_db)):
         eyeposition=flattened_eyeposition,
         eyerotation=flattened_eyerotation,
         end_stamp=end_stamp,
-        current_score=current_score,
-        rotation_quantity=rotation_quantity
+        score=score,
+        test_version=test_version,
+        end_timer=end_timer,
+        initial_timer=initial_timer,
+        rotation_speed=rotation_speed,
+        obj_rotation=obj_rotation,
+        description="",
     )
 
     db.add(vr_data)
@@ -114,16 +129,8 @@ def init_muse_record():
 
 
 def init_epoc_record():
-    while True:
-        time.sleep(3)
-        input("Click enter to start recording:")
-        asyncio.run(EpocX.main())
-        time.sleep(3)
-        input("Click enter to stop recording:")
-        return
-        print("Recording stopped.")
+    asyncio.run(EpocX.main())
+
 
 if __name__ == "__main__":
-    t = threading.Thread(target=init_epoc_record)
-    t.start()
     uvicorn.run("main:app", host="0.0.0.0", port=8083, reload=False)

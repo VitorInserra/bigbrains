@@ -7,8 +7,7 @@ Base = declarative_base()
 class EpocXDataModel(Base):
     __tablename__ = "epoc_x_data"
 
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String, index=True)
+    session_id = Column(String, primary_key=True, index=True)
     start_stamp = Column(DateTime)
     end_stamp = Column(DateTime)
 

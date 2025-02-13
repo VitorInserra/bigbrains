@@ -8,15 +8,18 @@ Base = declarative_base()
 class VRDataModel(Base):
     __tablename__ = "vr_data"
 
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String)
+    session_id = Column(String, primary_key=True, index=True)
     eyeposition = Column(ARRAY(Float))
     eyerotation = Column(ARRAY(Float))
     eye_id = Column(String)
     start_stamp = Column(TIMESTAMP(timezone=True), server_default=func.now())
     end_stamp = Column(TIMESTAMP(timezone=True))
-    current_score = Column(Integer)
-    rotation_quantity = Column(Integer)
+    score = Column(Integer)
+    test_version = Column(Integer)
+    end_timer = Column(Float)
+    initial_timer = Column(Float)
+    rotation_speed = Column(Float)
+    obj_rotation = Column(Float)
     description = Column(String)
 
 Base.metadata.create_all(bind=engine)
