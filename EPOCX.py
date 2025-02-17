@@ -20,7 +20,6 @@ load_dotenv()
 
 CLIENT_ID = os.environ.get("CLIENT_ID")
 CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
-print(CLIENT_ID)
 
 ssl_context = ssl._create_unverified_context()
 
@@ -124,9 +123,27 @@ async def handle_incoming_data(websocket):
 
             if len(pow_data_batch) == batch_size:
                 df = pd.DataFrame(pow_data_batch)
-                print(df)
                 pow_data_batch.clear()
 
+
+
+
+async def get_detection_info(websocket, cortex_token, session_id):
+        await send_json_rpc(
+            websocket,
+            "subscribe",
+            {"cortexToken": cortex_token, "session": session_id, "streams": ["fac"]},
+            request_id=7,
+        )
+
+        while True:
+            response = await websocket.recv()
+
+            timestamp = datetime.now().isoformat()
+
+            print(f"Timestamp: {timestamp}")
+            print(f"getDetectionInfo Response:\n{response}")
+            time.sleep(1)
 
 async def main():
     async with websockets.connect(CORTEX_URL, ssl=ssl_context) as websocket:
@@ -159,9 +176,10 @@ async def main():
         print("createSession response:", resp)
         session_id = resp["result"]["id"]
 
-        await subscribe_to_streams(websocket, cortex_token, session_id)
+        # await subscribe_to_streams(websocket, cortex_token, session_id)
+        # await handle_incoming_data(websocket)
 
-        await handle_incoming_data(websocket)
+        await get_detection_info(websocket, cortex_token, session_id)
 
 
 if __name__ == "__main__":
