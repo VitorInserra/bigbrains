@@ -137,7 +137,6 @@ async def data_dump(data: VRData, db: Session = Depends(get_db)):
 @app.get("/blink-sync")
 async def set_session_id():
     start = time.time()
-    set_global_session_id()
     t = threading.Thread(target=init_blink_sync)
     t.start()
     time.sleep(3)
@@ -147,10 +146,9 @@ async def set_session_id():
 def init_blink_sync():
     asyncio.run(EpocX.blink_sync())
 
-@app.post("/compare-blinks/{left}/{ts_l}/{right}/{ts_r}")
-async def compare_blinks(left: bool, ts_l: datetime, right: bool, ts_r: datetime):
-    print(left, ts_l)
-    print(right, ts_r)
+@app.get("/compare-blinks/{blink}/{ts}")
+async def compare_blinks(blink: str, ts: str):
+    print(blink, ts)
 
     return {"message": "ok"}
 
