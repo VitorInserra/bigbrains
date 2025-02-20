@@ -93,7 +93,10 @@ async def subscribe_to_streams(websocket, cortex_token, session_id):
         request_id=7,
     )
 
+
 pow_data_batch = []
+
+
 async def handle_incoming_data(websocket):
     batch_size = -1
     while True:
@@ -126,24 +129,26 @@ async def handle_incoming_data(websocket):
                 pow_data_batch.clear()
 
 
-
-
 async def get_detection_info(websocket, cortex_token, session_id):
-        await send_json_rpc(
-            websocket,
-            "subscribe",
-            {"cortexToken": cortex_token, "session": session_id, "streams": ["fac"]},
-            request_id=7,
-        )
+    await send_json_rpc(
+        websocket,
+        "subscribe",
+        {"cortexToken": cortex_token, "session": session_id, "streams": ["fac"]},
+        request_id=7,
+    )
 
-        while True:
-            response = await websocket.recv()
+    while True:
+        response = await websocket.recv()
+        response = json.loads(response)
 
-            timestamp = datetime.now().isoformat()
+        if "time" in response:
+            timestamp = datetime.fromtimestamp(float(response["time"])).strftime(
+                "%H:%M:%S.%f"
+            )
 
-            print(f"Timestamp: {timestamp}")
-            print(f"getDetectionInfo Response:\n{response}")
-            time.sleep(1)
+            if "blink" in "fac":
+                print("Blinked", timestamp)
+
 
 async def main():
     async with websockets.connect(CORTEX_URL, ssl=ssl_context) as websocket:
@@ -176,11 +181,44 @@ async def main():
         print("createSession response:", resp)
         session_id = resp["result"]["id"]
 
-        # await subscribe_to_streams(websocket, cortex_token, session_id)
-        # await handle_incoming_data(websocket)
+        await subscribe_to_streams(websocket, cortex_token, session_id)
+        await handle_incoming_data(websocket)
+
+
+async def blink_sync():
+    async with websockets.connect(CORTEX_URL, ssl=ssl_context) as websocket:
+
+        resp = await request_access(websocket, CLIENT_ID, CLIENT_SECRET)
+        print("requestAccess response:", resp)
+
+        await control_device(websocket, "refresh", request_id=2)
+
+        time.sleep(1)
+
+        resp = await query_headsets(websocket)
+        print("queryHeadsets response:", resp)
+        headsets = resp.get("result", [])
+        if not headsets:
+            print("No headsets found. Make sure your device is on and in range.")
+            return
+
+        headset_id = headsets[0]["id"]
+        print(f"Using headset_id: {headset_id}")
+
+        await control_device(websocket, "connect", request_id=4, headset_id=headset_id)
+
+        resp = await authorize(websocket, CLIENT_ID, CLIENT_SECRET)
+        print("authorize response:", resp)
+        cortex_token = resp["result"]["cortexToken"]
+        print(f"Cortex Token: {cortex_token}")
+
+        resp = await create_session(websocket, cortex_token, headset_id)
+        print("createSession response:", resp)
+        session_id = resp["result"]["id"]
 
         await get_detection_info(websocket, cortex_token, session_id)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # asyncio.run(main())
+    asyncio.run(blink_sync())

@@ -18,6 +18,7 @@ from db_handling.VRData import VRData
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 from typing import List
+from datetime import datetime
 
 global_session_id: str = None
 
@@ -55,6 +56,28 @@ async def set_session_id():
     time.sleep(3)
     print(time.time() - start)
     return
+
+
+def init_epoc_record():
+    asyncio.run(EpocX.main())
+
+
+def init_muse_record():
+    while True:
+        f = open("session_data.csv", "w")
+        f.truncate()
+        f.write("timestamp,tp9,af7,af8,tp10,hr\n")
+        f.close()
+        muse_record.start_muse_streaming()
+        time.sleep(3)
+        input("Click enter to start recording:")
+        record_proc = mp.Process(target=call_record, daemon=True)
+        record_proc.start()
+        time.sleep(10)
+        input("Click enter to stop recording:")
+        record_proc.kill()
+        print("Recording stopped.")
+
 
 
 @app.get("/muse-record")
@@ -111,25 +134,26 @@ async def data_dump(data: VRData, db: Session = Depends(get_db)):
     return {"message": "VR data saved and recent EEG data recorded."}
 
 
-def init_muse_record():
-    while True:
-        f = open("session_data.csv", "w")
-        f.truncate()
-        f.write("timestamp,tp9,af7,af8,tp10,hr\n")
-        f.close()
-        muse_record.start_muse_streaming()
-        time.sleep(3)
-        input("Click enter to start recording:")
-        record_proc = mp.Process(target=call_record, daemon=True)
-        record_proc.start()
-        time.sleep(10)
-        input("Click enter to stop recording:")
-        record_proc.kill()
-        print("Recording stopped.")
+@app.get("/blink-sync")
+async def set_session_id():
+    start = time.time()
+    set_global_session_id()
+    t = threading.Thread(target=init_blink_sync)
+    t.start()
+    time.sleep(3)
+    print(time.time() - start)
+    return
 
+def init_blink_sync():
+    asyncio.run(EpocX.blink_sync())
 
-def init_epoc_record():
-    asyncio.run(EpocX.main())
+@app.post("/compare-blinks/{left}/{ts_l}/{right}/{ts_r}")
+async def compare_blinks(left: bool, ts_l: datetime, right: bool, ts_r: datetime):
+    print(left, ts_l)
+    print(right, ts_r)
+
+    return {"message": "ok"}
+
 
 
 if __name__ == "__main__":
