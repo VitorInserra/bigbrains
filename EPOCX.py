@@ -140,14 +140,18 @@ async def get_detection_info(websocket, cortex_token, session_id):
     while True:
         response = await websocket.recv()
         response = json.loads(response)
+        
+        search = ['blink', 'winkR', 'winkL']
 
         if "time" in response:
             timestamp = datetime.fromtimestamp(float(response["time"])).strftime(
                 "%H:%M:%S.%f"
             )
 
-            if "blink" in response["fac"]:
+        for i in search:
+            if i in response["fac"]:
                 print("Blinked", timestamp)
+                break
 
 
 async def main():
