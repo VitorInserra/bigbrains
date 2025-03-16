@@ -1,11 +1,13 @@
 from pydantic import BaseModel
 from typing import List
 
+
 class VRData(BaseModel):
     start_stamp: str
     eye_id: str
-    eyeposition: List[List[float]]
-    eyerotation: List[List[float]]
+    eye_interactables: List[
+        List[int]
+    ]  # [0 -> Timer, 1 -> GameObject, 2 -> OutlineObject, 3 -> Score]:
     end_stamp: str
     score: int
     test_version: int

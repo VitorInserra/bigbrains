@@ -7,10 +7,10 @@ Base = declarative_base()
 
 class VRDataModel(Base):
     __tablename__ = "vr_data"
+    id = Column(Integer, primary_key=True, autoincrement=True)
 
-    session_id = Column(String, primary_key=True, index=True)
-    eyeposition = Column(ARRAY(Float))
-    eyerotation = Column(ARRAY(Float))
+    session_id = Column(String)
+    eye_interactables = Column(ARRAY(Float))
     eye_id = Column(String)
     start_stamp = Column(TIMESTAMP(timezone=True), server_default=func.now())
     end_stamp = Column(TIMESTAMP(timezone=True))
@@ -21,5 +21,6 @@ class VRDataModel(Base):
     rotation_speed = Column(Float)
     obj_rotation = Column(Float)
     description = Column(String)
+
 
 Base.metadata.create_all(bind=engine)

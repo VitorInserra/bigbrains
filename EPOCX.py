@@ -151,7 +151,8 @@ async def get_detection_info(websocket, cortex_token, session_id):
         for i in search:
             if i in response["fac"]:
                 print("Blinked", timestamp)
-                break
+                breakxit
+                
 
 
 async def main():
