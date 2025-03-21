@@ -95,6 +95,23 @@ async def subscribe_to_streams(websocket, cortex_token, session_id):
 
 
 pow_data_batch = []
+CHANNELS = [
+    "AF3",
+    "F7",
+    "F3",
+    "FC5",
+    "T7",
+    "P7",
+    "O1",
+    "O2",
+    "P8",
+    "T8",
+    "FC6",
+    "F4",
+    "F8",
+    "AF4",
+]
+BANDS = ["theta", "alpha", "betaL", "betaH", "gamma"]
 
 
 async def handle_incoming_data(websocket):
@@ -102,30 +119,24 @@ async def handle_incoming_data(websocket):
     while True:
         data_msg = await websocket.recv()
         data = json.loads(data_msg)
+
         if "pow" in data:
+            # 'data["pow"]' is a 70-element list in this order:
+            #  AF3/theta, AF3/alpha, AF3/betaL, AF3/betaH, AF3/gamma,
+            #  F7/theta, F7/alpha, ... (14 channels × 5 bands)
             channel_values = data["pow"]
-            row = {
-                "timestamp": data["time"],
-                "AF3": channel_values[0],
-                "F7": channel_values[1],
-                "F3": channel_values[2],
-                "FC5": channel_values[3],
-                "T7": channel_values[4],
-                "P7": channel_values[5],
-                "O1": channel_values[6],
-                "O2": channel_values[7],
-                "P8": channel_values[8],
-                "T8": channel_values[9],
-                "FC6": channel_values[10],
-                "F4": channel_values[11],
-                "F8": channel_values[12],
-                "AF4": channel_values[13],
-            }
+            row = {}
+            row["timestamp"] = data["time"]
+
+            for ch_index, ch_name in enumerate(CHANNELS):
+                for b_index, band_name in enumerate(BANDS):
+                    pow_index = ch_index * len(BANDS) + b_index
+                    col_name = f"{ch_name}_{band_name}"
+                    row[col_name] = channel_values[pow_index]
 
             pow_data_batch.append(row)
 
             if len(pow_data_batch) == batch_size:
-                df = pd.DataFrame(pow_data_batch)
                 pow_data_batch.clear()
 
 
@@ -140,8 +151,8 @@ async def get_detection_info(websocket, cortex_token, session_id):
     while True:
         response = await websocket.recv()
         response = json.loads(response)
-        
-        search = ['blink', 'winkR', 'winkL']
+
+        search = ["blink", "winkR", "winkL"]
 
         if "time" in response:
             timestamp = datetime.fromtimestamp(float(response["time"])).strftime(
@@ -151,8 +162,7 @@ async def get_detection_info(websocket, cortex_token, session_id):
         for i in search:
             if i in response["fac"]:
                 print("Blinked", timestamp)
-                breakxit
-                
+                break
 
 
 async def main():
