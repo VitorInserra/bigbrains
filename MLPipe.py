@@ -6,6 +6,7 @@ from models.EpocXDataModel import EpocXDataModel
 from db import get_db
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.signal import medfilt
 
 
 def load_data_from_db(db_session: Session):
@@ -17,7 +18,6 @@ def load_data_from_db(db_session: Session):
       - eeg_df: A DataFrame with EEG power band values, session IDs, and timestamps.
     """
 
-    # Load VR data
     vr_rows = db_session.query(VRDataModel).all()
     vr_data = [
         {
@@ -38,7 +38,6 @@ def load_data_from_db(db_session: Session):
     ]
     vr_df = pd.DataFrame(vr_data)
 
-    # Load EEG data
     eeg_rows = db_session.query(EpocXDataModel).all()
 
     eeg_data = []
@@ -49,7 +48,6 @@ def load_data_from_db(db_session: Session):
             "end_stamp": row.end_stamp,
         }
 
-        # Dynamically extract all EEG channels & band values
         for channel in [
             "AF3",
             "F7",
@@ -68,9 +66,7 @@ def load_data_from_db(db_session: Session):
         ]:
             for band in ["theta", "alpha", "beta_l", "beta_h", "gamma"]:
                 column_name = f"{channel.lower()}_{band.lower()}"
-                row_dict[column_name] = getattr(
-                    row, column_name, None
-                )  # Get attribute dynamically
+                row_dict[column_name] = getattr(row, column_name, None)
 
         eeg_data.append(row_dict)
 
@@ -86,7 +82,6 @@ def extract_eeg_features_for_round(eeg_row, round_start, round_end):
     """
     features = {}
 
-    # For each channel, compute stats
     for channel_name in [
         "AF3",
         "F7",
@@ -105,7 +100,7 @@ def extract_eeg_features_for_round(eeg_row, round_start, round_end):
     ]:
         for band in ["theta", "alpha", "beta_l", "beta_h", "gamma"]:
             column_name = f"{channel_name.lower()}_{band.lower()}"
-            channel_data = eeg_row[column_name]  # This is a list of floats
+            channel_data = eeg_row[column_name]
             if not channel_data:
                 features[f"{column_name}_mean"] = 0
                 features[f"{column_name}_std"] = 0
@@ -128,7 +123,6 @@ def summarize_eye_gaze(eye_array):
         return {"frac_timer": 0, "frac_gameobj": 0, "frac_outline": 0, "frac_score": 0}
 
     df = pd.DataFrame(eye_array, columns=["timer", "gameobj", "outline", "score"])
-    # fraction of '1' for each column
     frac_timer = df["timer"].mean()
     frac_gameobj = df["gameobj"].mean()
     frac_outline = df["outline"].mean()
@@ -153,9 +147,6 @@ def build_feature_table(vr_df, eeg_df):
         round_start = vr_row["start_stamp"]
         round_end = vr_row["end_stamp"]
 
-        # 1) Find the matching EEG row(s) for that session & time.
-        #    This example assumes exactly one row in eeg_df for each round (by session_id).
-        #    If you have multiple or a single big chunk, you'd need a more careful approach.
         matching_eeg = eeg_df[
             (eeg_df["session_id"] == round_session_id)
             & (eeg_df["start_stamp"] >= round_start)
@@ -163,25 +154,17 @@ def build_feature_table(vr_df, eeg_df):
         ]
 
         if matching_eeg.empty:
-            # If no matching EEG, skip or handle gracefully
+
             continue
 
-        # We'll assume one row, or just take the first if multiple
         eeg_row = matching_eeg.iloc[0].to_dict()
 
-        # 2) Extract EEG features
         eeg_features = extract_eeg_features_for_round(eeg_row, round_start, round_end)
 
-        # 3) Summarize eye gaze
         eye_gaze_features = summarize_eye_gaze(vr_row["eye_interactables"])
 
-        # 4) Compute your performance label or metrics
-        #    For example, let's define "leftover_time" or any composite
-        leftover_time = vr_row[
-            "end_timer"
-        ]  # or (vr_row["end_timer"] / vr_row["initial_timer"])
-        # or define your own formula combining rotation_speed, obj_rotation, etc.
-        # Example:
+        leftover_time = vr_row["end_timer"]
+
         performance_metric = compute_performance_metric(
             score=vr_row["score"],
             rotation_speed=vr_row["rotation_speed"],
@@ -189,7 +172,6 @@ def build_feature_table(vr_df, eeg_df):
             leftover_time=leftover_time,
         )
 
-        # 5) Combine everything into one dictionary
         row_features = {
             "session_id": round_session_id,
             "round_id": vr_row["id"],
@@ -238,16 +220,14 @@ def plot_eye_gaze_percentages(vr_df, row_range=None):
         if not eye_array:
             continue
         df = pd.DataFrame(eye_array, columns=["timer", "gameobj", "outline", "score"])
-        percentages = df.mean() * 100  # Convert to percentage
+        percentages = df.mean() * 100
         gaze_data.append(percentages)
         timestamps.append(row["start_stamp"])
 
-    # Create DataFrame for plotting
     gaze_df = pd.DataFrame(gaze_data)
     gaze_df["start_stamp"] = timestamps
     gaze_df.set_index("start_stamp", inplace=True)
 
-    # Plot
     ax = gaze_df.plot(kind="bar", stacked=True, figsize=(12, 6))
     ax.set_title("Percentage of Gaze on Objects per Round")
     ax.set_ylabel("Percentage (%)")
@@ -258,70 +238,132 @@ def plot_eye_gaze_percentages(vr_df, row_range=None):
     plt.show()
 
 
-def plot_sensor_avg(eeg_df, sensor_key, chunk_size=2.0):
+def clean_sensor_data(sensor_data, max_iters=5, z_thresh=3):
+
+    s = pd.Series(sensor_data).interpolate(method="linear")
+    for _ in range(max_iters):
+        mean_val = s.mean()
+        std_val = s.std()
+        z_scores = (s - mean_val).abs() / std_val  # z = (data_point - avg)/std
+
+        outliers = z_scores > z_thresh
+        if not outliers.any():
+            break
+
+        s[outliers] = np.nan
+        s = s.interpolate(method="linear")
+
+    return sensor_data
+
+
+def plot_multiple_sensors_avg(
+    eeg_df,
+    sensor_keys,
+    chunk_size=2.0,
+    impossible_threshold=150.0,
+    z_thresh=1,
+    max_iters=5,
+):
     """
-    For a single EEG row (dictionary) that contains a sensor's data as a list of floats,
-    this function divides the total time span (from start_stamp to end_stamp) into 2-second chunks,
-    computes the average reading of the sensor in each chunk, and plots the time series.
+    Plots multiple sensors (e.g. alpha, beta_l, beta_h, etc.) from the same dataset,
+    each in its own subplot, stacked vertically in one figure.
 
     Parameters:
-      - eeg_row: dict with keys "start_stamp", "end_stamp", and sensor data under sensor_key.
-      - sensor_key: string key for the sensor (e.g. "AF3_alpha")
-      - chunk_size: time window in seconds for averaging (default=2.0 seconds)
+      - eeg_df: DataFrame of EEG data (multiple rows)
+      - sensor_keys: list of column names, e.g. ["af3_alpha", "af3_beta_h", ...]
+      - chunk_size: size of each averaging chunk in seconds
+      - impossible_threshold: values above this are discarded
+      - z_thresh, max_iters: parameters for the iterative z-score cleaning
     """
 
-    time_counted = 0.0
-    time_points = []  # X-axis: time (in seconds from start)
-    avg_values = []  # Y-axis: average sensor reading for the chunk
+    # Create a figure with len(sensor_keys) subplots, sharing the x-axis
+    fig, axs = plt.subplots(
+        nrows=len(sensor_keys),
+        ncols=1,
+        figsize=(8, 2.5 * len(sensor_keys)),
+        sharex=True,
+    )
 
-    for _, row in eeg_df.iterrows():
-        eeg_row = row.to_dict()
-        # Get sensor data as numpy array.
-        sensor_data = np.array(eeg_row[sensor_key])
+    # If there's only one sensor_key, axs will be just one Axes object rather than a list
+    if len(sensor_keys) == 1:
+        axs = [axs]
 
-        # Ensure start_stamp and end_stamp are datetime objects.
-        start_time = eeg_row["start_stamp"]
-        end_time = eeg_row["end_stamp"]
-        if isinstance(start_time, str):
-            start_time = pd.to_datetime(start_time)
-        if isinstance(end_time, str):
-            end_time = pd.to_datetime(end_time)
+    # We'll track the same "time_counted" across the entire dataset OR you can reset per sensor
+    # For EEG that is in multiple rows, let's keep it sensor-by-sensor but across all rows
 
-        total_seconds = (end_time - start_time).total_seconds()
-        if total_seconds <= 0:
-            print("Invalid timestamps; total duration must be positive.")
-            return
+    for i, sensor_key in enumerate(sensor_keys):
+        time_counted = 0.0
+        time_points = []
+        avg_values = []
 
-        num_samples = len(sensor_data)
-        sample_rate = num_samples / total_seconds  # samples per second
+        for _, row in eeg_df.iterrows():
+            eeg_row = row.to_dict()
+            sensor_data = np.array(eeg_row[sensor_key])
 
-        t = 0.0
-        while t < total_seconds:
-            t_end = min(t + chunk_size, total_seconds)
-            start_idx = int(t * sample_rate)
-            end_idx = int(t_end * sample_rate)
-            if end_idx > start_idx:
-                avg_val = sensor_data[start_idx:end_idx].mean()
-            else:
-                avg_val = np.nan
-            # Using midpoint of chunk for plotting.
-            time_points.append(time_counted + t + (t_end - t) / 2.0)
-            avg_values.append(avg_val)
-            t += chunk_size
+            # Clean the data
+            s = pd.Series(sensor_data).interpolate(method="linear")
+            for _ in range(max_iters):
+                mean_val = s.mean()
+                std_val = s.std()
+                z_scores = (s - mean_val).abs() / std_val
+                outliers = z_scores > z_thresh
+                if not outliers.any():
+                    break
+                s[outliers] = np.nan
+                s = s.interpolate(method="linear")
 
-        time_counted += total_seconds
+            sensor_data = s.to_numpy()
 
-    plt.figure(figsize=(8, 4))
-    plt.plot(time_points, avg_values, marker="o", linestyle="-")
-    plt.xlabel("Time (seconds from start)")
-    plt.ylabel(f"{sensor_key} Average Reading in uV^2 / Hz")
-    plt.title(f"{sensor_key} Average Every {chunk_size} Seconds")
-    plt.grid(True)
+            # Timestamps
+            start_time = eeg_row["start_stamp"]
+            end_time = eeg_row["end_stamp"]
+            if isinstance(start_time, str):
+                start_time = pd.to_datetime(start_time)
+            if isinstance(end_time, str):
+                end_time = pd.to_datetime(end_time)
+
+            total_seconds = (end_time - start_time).total_seconds()
+            if total_seconds <= 0:
+                continue  # skip invalid
+
+            num_samples = len(sensor_data)
+            sample_rate = num_samples / total_seconds
+
+            # Chunking loop
+            t = 0.0
+            while t < total_seconds:
+                t_end = min(t + chunk_size, total_seconds)
+                start_idx = int(t * sample_rate)
+                end_idx = int(t_end * sample_rate)
+                if end_idx > start_idx:
+                    avg_val = sensor_data[start_idx:end_idx].mean()
+                else:
+                    avg_val = np.nan
+
+                # Discard values above impossible threshold
+                if avg_val < impossible_threshold:
+                    time_points.append(time_counted + t + (t_end - t) / 2.0)
+                    avg_values.append(avg_val)
+
+                t += chunk_size
+
+            time_counted += total_seconds
+
+        # Now plot for this sensor
+        axs[i].plot(
+            time_points, avg_values, marker="", linestyle="-", label=sensor_key
+        )
+        axs[i].set_ylabel(f"{sensor_key}")
+        axs[i].grid(True)
+        axs[i].legend(loc="upper right")
+
+    # Label only the bottom subplot’s x-axis
+    axs[-1].set_xlabel("Time (seconds from start)")
+    fig.suptitle(f"Sensors Average Every {chunk_size} Seconds", y=1.02, fontsize=14)
+    fig.tight_layout()
     plt.show()
 
 
-# Example call (for a single EEG row):
-# Assuming 'eeg_df' is your DataFrame and you want to plot "AF3_alpha" from the first row:
 def main_feature_extraction():
     db = next(get_db())
     try:
@@ -331,20 +373,48 @@ def main_feature_extraction():
         )
         eeg_df["end_stamp"] = pd.to_datetime(eeg_df["end_stamp"]).dt.tz_localize(None)
 
-        first_eeg_row = eeg_df.iloc[96].to_dict()
+        first_eeg_row = eeg_df.iloc[265].to_dict()
         filtered_df = eeg_df[eeg_df["session_id"] == first_eeg_row["session_id"]]
-        plot_sensor_avg(filtered_df, "af3_alpha", chunk_size=0.3)
-        plot_sensor_avg(filtered_df, "af3_beta_h", chunk_size=0.3)
-        plot_sensor_avg(filtered_df, "af3_beta_l", chunk_size=0.3)
+
+        sensors_to_plot = [
+            "af3_alpha",
+            "af3_beta_h",
+            "af3_beta_l",
+            "af3_theta",
+            "af3_gamma",
+        ]
+
+        # Plot all five in one figure with stacked subplots
+        plot_multiple_sensors_avg(
+            filtered_df,
+            sensors_to_plot,
+            chunk_size=0.3,
+            impossible_threshold=20.0,
+            z_thresh=1,
+            max_iters=5,
+        )
+        sensors_to_plot = [
+            "af3_alpha",
+            "f7_alpha",
+            "t7_alpha",
+            "p7_alpha",
+            "o1_alpha",
+            "fc6_alpha",
+        ]
+
+        # Plot all five in one figure with stacked subplots
+        plot_multiple_sensors_avg(
+            filtered_df,
+            sensors_to_plot,
+            chunk_size=0.3,
+            impossible_threshold=20.0,
+            z_thresh=1,
+            max_iters=5,
+        )
 
     finally:
         db.close()
 
 
-    # feature_df = build_feature_table(vr_df, eeg_df)
-    # plot_eye_gaze_percentages(vr_df, row_range=(0, 200))
-
-    # print("Final Feature DF:\n", feature_df.head())
-    # feature_df.to_csv("feature_table.csv", index=False)
 if __name__ == "__main__":
     main_feature_extraction()
