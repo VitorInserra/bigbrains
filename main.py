@@ -92,7 +92,6 @@ def call_muse_record():
 async def db_insert_eeg(db: Session = Depends(get_db)):
     session_id = get_global_session_id()
     df = pd.DataFrame(EpocX.pow_data_batch)
-    print(df)
     EpocX.pow_data_batch.clear()
     insert_eeg_db(db, session_id, df)
 
@@ -109,6 +108,8 @@ async def data_dump(data: VRData, db: Session = Depends(get_db)):
     initial_timer = data.initial_timer
     rotation_speed = data.rotation_speed
     obj_rotation = data.obj_rotation
+    expected_rotation = data.expected_rotation
+    obj_size = data.obj_size
 
     vr_data = VRDataModel(
         start_stamp=start_stamp,
@@ -122,6 +123,8 @@ async def data_dump(data: VRData, db: Session = Depends(get_db)):
         initial_timer=initial_timer,
         rotation_speed=rotation_speed,
         obj_rotation=obj_rotation,
+        expected_rotation=expected_rotation,
+        obj_size=obj_size,
         description="",
     )
 

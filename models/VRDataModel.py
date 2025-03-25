@@ -20,6 +20,8 @@ class VRDataModel(Base):
     initial_timer = Column(Float)
     rotation_speed = Column(Float)
     obj_rotation = Column(Float)
+    expected_rotation = Column(Float)
+    obj_size = Column(Float)
     description = Column(String)
 
 

@@ -15,3 +15,5 @@ class VRData(BaseModel):
     initial_timer: float
     rotation_speed: float
     obj_rotation: float
+    expected_rotation: float
+    obj_size: float
