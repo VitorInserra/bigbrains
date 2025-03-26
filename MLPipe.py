@@ -7,6 +7,8 @@ from db import get_db
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import medfilt
+from scipy.stats import pearsonr
+import itertools
 
 
 def load_data_from_db(db_session: Session):
@@ -31,6 +33,8 @@ def load_data_from_db(db_session: Session):
             "initial_timer": row.initial_timer,
             "rotation_speed": row.rotation_speed,
             "obj_rotation": row.obj_rotation,
+            "expected_rotation": row.expected_rotation,
+            "obj_size": row.obj_size,
             "description": row.description,
             "eye_interactables": row.eye_interactables,
         }
@@ -350,9 +354,7 @@ def plot_multiple_sensors_avg(
             time_counted += total_seconds
 
         # Now plot for this sensor
-        axs[i].plot(
-            time_points, avg_values, marker="", linestyle="-", label=sensor_key
-        )
+        axs[i].plot(time_points, avg_values, marker="", linestyle="-", label=sensor_key)
         axs[i].set_ylabel(f"{sensor_key}")
         axs[i].grid(True)
         axs[i].legend(loc="upper right")
@@ -364,17 +366,94 @@ def plot_multiple_sensors_avg(
     plt.show()
 
 
+def plot_performance(df: pd.DataFrame):
+    df["timer_diff"] = df["initial_timer"] - df["end_timer"]
+    # )/(15.1 - df['initial_timer']) * df["obj_size"] * 0.02 + df["end_timer"] * 0.1
+
+    # grouped = df.groupby('session_id')['performance'].mean().reset_index()
+
+    plt.figure()
+    plt.plot(df["start_stamp"], df["timer_diff"], marker="o")
+    plt.title("Timer difference")
+    plt.xlabel("Start Timestamp")
+    plt.ylabel("Timer Difference")
+    plt.xticks(rotation=45)  # rotate x-axis labels if needed
+    plt.tight_layout()  # fix layout issues
+    plt.savefig("stats_imgs/timer_diff")
+
+    df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
+
+    plt.figure()
+    plt.plot(df["start_stamp"], df["rot_diff"], marker="o")
+    plt.title("Rotation")
+    plt.xlabel("Start Timestamp")
+    plt.ylabel("Rotation Difference")
+    plt.xticks(rotation=45)  # rotate x-axis labels if needed
+    plt.tight_layout()  # fix layout issues
+    plt.savefig("stats_imgs/rotation_diff")
+
+    plt.figure()
+    plt.plot(df["start_stamp"], df["obj_size"], marker="o")
+    plt.title("Object_size")
+    plt.xlabel("Start Timestamp")
+    plt.ylabel("Performance")
+    plt.xticks(rotation=45)  # rotate x-axis labels if needed
+    plt.tight_layout()  # fix layout issues
+    plt.savefig("stats_imgs/obj_size")
+
+    df["timer_diff"] = df["initial_timer"] - df["end_timer"]
+    df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
+    # df["obj_size"] is already present
+
+    cols_of_interest = ["timer_diff", "rot_diff"]
+    corr_matrix = df[cols_of_interest].corr()
+
+    # Pairwise Pearson correlation with significance testing
+    for col1, col2 in itertools.combinations(cols_of_interest, 2):
+        # Drop any rows with NaNs in these two columns to avoid errors
+        valid_data = df[[col1, col2]].dropna()
+        if len(valid_data) < 2:
+            # Not enough data for correlation
+            print(f"Not enough data to correlate {col1} and {col2}.")
+            continue
+
+    # Compute correlation coefficient and p-value
+    r_value, p_value = pearsonr(valid_data[col1], valid_data[col2])
+
+    print(f"Correlation between {col1} and {col2}:")
+    print(f"  r = {r_value:.4f}, p = {p_value:.4g}\n")
+    plt.figure()
+    plt.imshow(corr_matrix, cmap="viridis", interpolation="nearest")
+    plt.title("Correlation Matrix")
+
+    # Show column labels
+    plt.xticks(range(len(cols_of_interest)), cols_of_interest, rotation=45)
+    plt.yticks(range(len(cols_of_interest)), cols_of_interest)
+
+    plt.colorbar()
+    plt.tight_layout()
+    plt.savefig("stats_imgs/correlation_matrix.png")
+
+
 def main_feature_extraction():
     db = next(get_db())
     try:
-        _, eeg_df = load_data_from_db(db)
+        vr_df, eeg_df = load_data_from_db(db)
         eeg_df["start_stamp"] = pd.to_datetime(eeg_df["start_stamp"]).dt.tz_localize(
             None
         )
         eeg_df["end_stamp"] = pd.to_datetime(eeg_df["end_stamp"]).dt.tz_localize(None)
 
-        first_eeg_row = eeg_df.iloc[265].to_dict()
-        filtered_df = eeg_df[eeg_df["session_id"] == first_eeg_row["session_id"]]
+        first_eeg_row = eeg_df.iloc[350].to_dict()
+        filtered_eeg = eeg_df[eeg_df["session_id"] == first_eeg_row["session_id"]]
+        filtered_vr = vr_df[vr_df["session_id"] == first_eeg_row["session_id"]]
+
+        filtered_vr.sort_values(by="start_stamp", inplace=True)
+        filtered_vr = filtered_vr.iloc[1:].reset_index(drop=True)
+        if len(filtered_vr) >= 2:
+            last_two = filtered_vr.iloc[-2:]
+            if (last_two["end_timer"] == 0).all():
+                filtered_vr = filtered_vr.iloc[:-1].reset_index(drop=True)
 
         sensors_to_plot = [
             "af3_alpha",
@@ -384,33 +463,35 @@ def main_feature_extraction():
             "af3_gamma",
         ]
 
-        # Plot all five in one figure with stacked subplots
-        plot_multiple_sensors_avg(
-            filtered_df,
-            sensors_to_plot,
-            chunk_size=0.3,
-            impossible_threshold=20.0,
-            z_thresh=1,
-            max_iters=5,
-        )
-        sensors_to_plot = [
-            "af3_alpha",
-            "f7_alpha",
-            "t7_alpha",
-            "p7_alpha",
-            "o1_alpha",
-            "fc6_alpha",
-        ]
+        # # Plot all five in one figure with stacked subplots
+        # plot_multiple_sensors_avg(
+        #     filtered_eeg,
+        #     sensors_to_plot,
+        #     chunk_size=0.3,
+        #     impossible_threshold=20.0,
+        #     z_thresh=1,
+        #     max_iters=5,
+        # )
+        # sensors_to_plot = [
+        #     "af3_alpha",
+        #     "f7_alpha",
+        #     "t7_alpha",
+        #     "p7_alpha",
+        #     "o1_alpha",
+        #     "fc6_alpha",
+        # ]
 
-        # Plot all five in one figure with stacked subplots
-        plot_multiple_sensors_avg(
-            filtered_df,
-            sensors_to_plot,
-            chunk_size=0.3,
-            impossible_threshold=20.0,
-            z_thresh=1,
-            max_iters=5,
-        )
+        # # Plot all five in one figure with stacked subplots
+        # plot_multiple_sensors_avg(
+        #     filtered_eeg,
+        #     sensors_to_plot,
+        #     chunk_size=0.3,
+        #     impossible_threshold=20.0,
+        #     z_thresh=1,
+        #     max_iters=5,
+        # )
+
+        plot_performance(filtered_vr)
 
     finally:
         db.close()
