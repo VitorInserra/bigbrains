@@ -9,6 +9,7 @@ import numpy as np
 from scipy.signal import medfilt
 from scipy.stats import pearsonr
 import itertools
+from ComputeEyeGaze import summarize_eye_gaze
 
 
 def load_data_from_db(db_session: Session):
@@ -116,29 +117,6 @@ def extract_eeg_features_for_round(eeg_row, round_start, round_end):
     return features
 
 
-def summarize_eye_gaze(eye_array):
-    """
-    eye_array: e.g. [[0,1,0,0], [0,1,0,0], [0,0,1,0], ...]
-    Each row is a 'sample' in your VR logging.
-
-    We'll compute fraction of samples that are 1 for each column.
-    """
-    if not eye_array:
-        return {"frac_timer": 0, "frac_gameobj": 0, "frac_outline": 0, "frac_score": 0}
-
-    df = pd.DataFrame(eye_array, columns=["timer", "gameobj", "outline", "score"])
-    frac_timer = df["timer"].mean()
-    frac_gameobj = df["gameobj"].mean()
-    frac_outline = df["outline"].mean()
-    frac_score = df["score"].mean()
-
-    return {
-        "frac_timer": frac_timer,
-        "frac_gameobj": frac_gameobj,
-        "frac_outline": frac_outline,
-        "frac_score": frac_score,
-    }
-
 
 def build_feature_table(vr_df, eeg_df):
     """
@@ -173,6 +151,8 @@ def build_feature_table(vr_df, eeg_df):
             score=vr_row["score"],
             rotation_speed=vr_row["rotation_speed"],
             obj_rotation=vr_row["obj_rotation"],
+            expected_rotation=vr_row["expected_rotation"],
+            obj_size=vr_row["obj_size"],
             leftover_time=leftover_time,
         )
 
@@ -196,50 +176,15 @@ def build_feature_table(vr_df, eeg_df):
     return pd.DataFrame(feature_rows)
 
 
-def compute_performance_metric(score, rotation_speed, obj_rotation, leftover_time):
+def compute_performance_metric(
+    score, rotation_speed, obj_rotation, expected_rotation, obj_size, leftover_time
+):
     """
     Your custom formula. As an example, let's do:
         perf = score + leftover_time - (obj_rotation / 10)  (some arbitrary formula)
     """
     return float(score) + float(leftover_time) - 0.1 * float(obj_rotation)
 
-
-def plot_eye_gaze_percentages(vr_df, row_range=None):
-    """
-    Plots a stacked bar graph showing the percentage of time each object
-    (timer, gameobj, outline, score) was looked at per round.
-
-    Parameters:
-    - vr_df: DataFrame that includes a 'start_stamp' and 'eye_interactables' column
-    - row_range: tuple (start_idx, end_idx) to slice vr_df rows; if None, uses all rows
-    """
-    if row_range:
-        vr_df = vr_df.iloc[row_range[0] : row_range[1]]
-
-    gaze_data = []
-    timestamps = []
-
-    for _, row in vr_df.iterrows():
-        eye_array = row["eye_interactables"]
-        if not eye_array:
-            continue
-        df = pd.DataFrame(eye_array, columns=["timer", "gameobj", "outline", "score"])
-        percentages = df.mean() * 100
-        gaze_data.append(percentages)
-        timestamps.append(row["start_stamp"])
-
-    gaze_df = pd.DataFrame(gaze_data)
-    gaze_df["start_stamp"] = timestamps
-    gaze_df.set_index("start_stamp", inplace=True)
-
-    ax = gaze_df.plot(kind="bar", stacked=True, figsize=(12, 6))
-    ax.set_title("Percentage of Gaze on Objects per Round")
-    ax.set_ylabel("Percentage (%)")
-    ax.set_xlabel("Start Time")
-    ax.legend(title="Object")
-    plt.tight_layout()
-    plt.xticks(rotation=45)
-    plt.show()
 
 
 def clean_sensor_data(sensor_data, max_iters=5, z_thresh=3):
@@ -368,9 +313,7 @@ def plot_multiple_sensors_avg(
 
 def plot_performance(df: pd.DataFrame):
     df["timer_diff"] = df["initial_timer"] - df["end_timer"]
-    # )/(15.1 - df['initial_timer']) * df["obj_size"] * 0.02 + df["end_timer"] * 0.1
 
-    # grouped = df.groupby('session_id')['performance'].mean().reset_index()
 
     plt.figure()
     plt.plot(df["start_stamp"], df["timer_diff"], marker="o")
@@ -400,6 +343,33 @@ def plot_performance(df: pd.DataFrame):
     plt.xticks(rotation=45)  # rotate x-axis labels if needed
     plt.tight_layout()  # fix layout issues
     plt.savefig("stats_imgs/obj_size")
+
+
+
+    df["rot_ratio"] = df["expected_rotation"]/df["obj_rotation"]
+
+    # 20% tolerance on rotation gives us 252/360
+    df["rot_ratio"] = np.where(
+        df["rot_ratio"] > (360/252), 0, df["rot_ratio"]
+    )
+    avg = np.mean(df["rot_ratio"])
+    df["rot_ratio"] = np.where(
+        df["rot_ratio"] == 0, avg, df["rot_ratio"]
+    )
+
+    df["performance"] = df["rot_ratio"]*df["obj_size"]*(df["initial_timer"] - df["end_timer"])/df["initial_timer"]
+    # df["performance"] = df["rot_ratio"]*df["obj_size"] + 0.8*(df["initial_timer"] - df["end_timer"])
+
+
+    plt.figure()
+    plt.plot(df["start_stamp"], df["performance"], marker="o")
+    plt.title("Performance")
+    plt.xlabel("Start Timestamp")
+    plt.ylabel("Performance")
+    plt.xticks(rotation=45)  # rotate x-axis labels if needed
+    plt.tight_layout()  # fix layout issues
+    plt.savefig("stats_imgs/perf")
+    plt.show()
 
     df["timer_diff"] = df["initial_timer"] - df["end_timer"]
     df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
@@ -445,33 +415,21 @@ def main_feature_extraction():
         eeg_df["end_stamp"] = pd.to_datetime(eeg_df["end_stamp"]).dt.tz_localize(None)
 
         first_eeg_row = eeg_df.iloc[350].to_dict()
-        filtered_eeg = eeg_df[eeg_df["session_id"] == first_eeg_row["session_id"]]
-        filtered_vr = vr_df[vr_df["session_id"] == first_eeg_row["session_id"]]
+        session_id = first_eeg_row["session_id"]
+        # print(session_id)
+        # session_id = "91ab78a3-7e9e-49d2-95c9-d53e0e202c83"
+        filtered_eeg = eeg_df[eeg_df["session_id"] == session_id]
+        filtered_vr = vr_df[vr_df["session_id"] == session_id]
 
         filtered_vr.sort_values(by="start_stamp", inplace=True)
-        filtered_vr = filtered_vr.iloc[1:].reset_index(drop=True)
+        filtered_vr = filtered_vr.iloc[1 : len(filtered_vr) - 1].reset_index(drop=True)
         if len(filtered_vr) >= 2:
             last_two = filtered_vr.iloc[-2:]
             if (last_two["end_timer"] == 0).all():
                 filtered_vr = filtered_vr.iloc[:-1].reset_index(drop=True)
 
-        sensors_to_plot = [
-            "af3_alpha",
-            "af3_beta_h",
-            "af3_beta_l",
-            "af3_theta",
-            "af3_gamma",
-        ]
+        build_feature_table(filtered_vr, filtered_eeg)
 
-        # # Plot all five in one figure with stacked subplots
-        # plot_multiple_sensors_avg(
-        #     filtered_eeg,
-        #     sensors_to_plot,
-        #     chunk_size=0.3,
-        #     impossible_threshold=20.0,
-        #     z_thresh=1,
-        #     max_iters=5,
-        # )
         # sensors_to_plot = [
         #     "af3_alpha",
         #     "f7_alpha",
@@ -491,7 +449,7 @@ def main_feature_extraction():
         #     max_iters=5,
         # )
 
-        plot_performance(filtered_vr)
+        # plot_performance(filtered_vr)
 
     finally:
         db.close()

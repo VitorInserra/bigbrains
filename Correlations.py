@@ -159,6 +159,7 @@ def main_feature_extraction():
         plt.xticks(rotation=45)
         plt.tight_layout()
         plt.grid(True)
+        plt.savefig("stats_imgs/rand_obj_gaze")
         plt.show()
 
 
@@ -184,7 +185,7 @@ def main_feature_extraction():
             "AF4",
         ]
         for channel in channels:
-            for band in ["alpha", "theta", "beta_l", "beta_h"]:
+            for band in ["alpha"]:
                 sensors_to_avg.append(channel.lower() + "_" + band)
         filtered_eeg = compute_eeg_averages_by_row(
             filtered_eeg,
@@ -195,16 +196,16 @@ def main_feature_extraction():
         )
 
         combined_df = filtered_eeg.join(filtered_vr[["timer_diff", "rot_diff", "rand_obj_gaze"]])
-        sensor_avg_cols = []
-        for channel in channels:
-            sensor_avg_cols.append(channel.lower() + "_alpha")
-            combined_df[channel.lower() + "_theta_beta_ratio"] = combined_df[channel.lower() + "_theta_avg"] / (
-                combined_df[channel.lower() + "_beta_l_avg"] + combined_df[channel.lower() + "_beta_h_avg"]
-            )
+        # sensor_avg_cols = []
+        # for channel in channels:
+        #     sensor_avg_cols.append(channel.lower() + "_alpha")
+        #     combined_df[channel.lower() + "_theta_beta_ratio"] = combined_df[channel.lower() + "_theta_avg"] / (
+        #         combined_df[channel.lower() + "_beta_l_avg"] + combined_df[channel.lower() + "_beta_h_avg"]
+        #     )
 
 
         # Build list of new sensor avg columns (e.g. "af3_alpha_avg")
-        # sensor_avg_cols = [f"{s}_avg" for s in sensors_to_avg]
+        sensor_avg_cols = [f"{s}_avg" for s in sensors_to_avg]
 
         # Finally, compute correlation & plot a correlation matrix
         find_and_plot_correlation(
