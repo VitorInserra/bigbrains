@@ -3,6 +3,9 @@ from scipy.signal import medfilt
 from scipy.stats import pearsonr
 import itertools
 import matplotlib.pyplot as plt
+import numpy as np
+from db import get_db
+from MLPipe import load_data_from_db
 
 
 def plot_performance(df: pd.DataFrame):
@@ -199,50 +202,236 @@ def plot_multiple_sensors_avg(
     axs[-1].set_xlabel("Time (seconds from start)")
     fig.suptitle(f"Sensors Average Every {chunk_size} Seconds", y=1.02, fontsize=14)
     fig.tight_layout()
+    plt.savefig("stats_imgs/alpha_ratios.png")
     plt.show()
 
 
+def plot_theta_beta_ratios(
+    eeg_df,
+    sensor_pairs,
+    chunk_size=2.0,
+    impossible_threshold=150.0,
+    z_thresh=1,
+    max_iters=5,
+    combine_betas=True,
+):
+    """
+    Plot theta/beta ratios for multiple sensors (each in its own subplot).
 
+    Parameters:
+      - eeg_df: DataFrame of EEG data (multiple rows).
+      - sensor_pairs: list of tuples/lists. For each sensor,
+          supply [theta_col, beta_l_col, beta_h_col] (or [theta_col, beta_col] if you only have one beta).
+          Example:
+             [
+               ["af3_theta", "af3_beta_l", "af3_beta_h"],
+               ["f7_theta", "f7_beta_l", "f7_beta_h"],
+             ]
+      - chunk_size: size (in seconds) of each averaging chunk
+      - impossible_threshold: ratio values above this are discarded
+      - z_thresh, max_iters: parameters for iterative z-score outlier cleaning
+      - combine_betas: if True, use (beta_l + beta_h). Otherwise use only beta_l if 2 columns are given
+                       or whichever single beta is listed second if only 2 columns are in the list.
+    """
+
+    fig, axs = plt.subplots(
+        nrows=len(sensor_pairs),
+        ncols=1,
+        figsize=(8, 2.5 * len(sensor_pairs)),
+        sharex=True,
+    )
+    if len(sensor_pairs) == 1:
+        axs = [axs]  # Ensure axs is always iterable
+
+    for i, sensor_info in enumerate(sensor_pairs):
+        # sensor_info might be [theta_key, beta_l_key, beta_h_key]
+        theta_key = sensor_info[0]
+
+        if len(sensor_info) == 2:
+            # If only one beta channel is provided
+            beta_l_key = sensor_info[1]
+            beta_h_key = None
+        else:
+            beta_l_key = sensor_info[1]
+            beta_h_key = sensor_info[2]
+
+        # We'll collect (time, ratio) across all rows
+        time_counted = 0.0
+        time_points = []
+        ratio_values = []
+
+        for _, row in eeg_df.iterrows():
+            eeg_row = row.to_dict()
+
+            # Extract the raw data arrays
+            theta_data = np.array(eeg_row[theta_key])
+            beta_l_data = np.array(eeg_row[beta_l_key])
+            beta_h_data = None
+            if beta_h_key is not None:
+                beta_h_data = np.array(eeg_row[beta_h_key])
+
+            # Clean each channel separately (iterative z-score interpolation)
+            def iterative_clean(arr):
+                s = pd.Series(arr).interpolate(method="linear")
+                for _ in range(max_iters):
+                    mean_val = s.mean()
+                    std_val = s.std()
+                    z_scores = (s - mean_val).abs() / std_val
+                    outliers = z_scores > z_thresh
+                    if not outliers.any():
+                        break
+                    s[outliers] = np.nan
+                    s = s.interpolate(method="linear")
+                return s.to_numpy()
+
+            theta_data = iterative_clean(theta_data)
+            beta_l_data = iterative_clean(beta_l_data)
+            if beta_h_data is not None:
+                beta_h_data = iterative_clean(beta_h_data)
+
+            # Compute ratio array
+            if beta_h_data is not None and combine_betas:
+                beta_sum = beta_l_data + beta_h_data
+            elif beta_h_data is not None:
+                # If user wants to keep them separate, you could do something else here
+                beta_sum = beta_h_data  # or beta_l_data, depending on your preference
+            else:
+                beta_sum = beta_l_data
+
+            # Avoid divide-by-zero or negative issues
+            eps = 1e-9
+            beta_sum[beta_sum == 0] = eps
+            ratio_data = theta_data / beta_sum
+
+            # Time chunking
+            start_time = eeg_row["start_stamp"]
+            end_time = eeg_row["end_stamp"]
+            if isinstance(start_time, str):
+                start_time = pd.to_datetime(start_time)
+            if isinstance(end_time, str):
+                end_time = pd.to_datetime(end_time)
+            total_seconds = (end_time - start_time).total_seconds()
+            if total_seconds <= 0:
+                continue  # skip invalid row
+
+            num_samples = len(ratio_data)
+            sample_rate = num_samples / total_seconds
+
+            t = 0.0
+            while t < total_seconds:
+                t_end = min(t + chunk_size, total_seconds)
+                start_idx = int(t * sample_rate)
+                end_idx = int(t_end * sample_rate)
+                if end_idx > start_idx:
+                    avg_val = ratio_data[start_idx:end_idx].mean()
+                else:
+                    avg_val = np.nan
+
+                # Discard obviously impossible ratio values
+                if avg_val < impossible_threshold:
+                    time_points.append(time_counted + t + (t_end - t) / 2.0)
+                    ratio_values.append(avg_val)
+
+                t += chunk_size
+
+            time_counted += total_seconds
+
+        # Plot the ratio for this sensor
+        # Create a label that reflects which columns we used
+        if beta_h_key is not None and combine_betas:
+            sensor_label = f"{theta_key} / ({beta_l_key} + {beta_h_key})"
+        elif beta_h_key is not None:
+            sensor_label = f"{theta_key} / {beta_h_key}"
+        else:
+            sensor_label = f"{theta_key} / {beta_l_key}"
+
+        axs[i].plot(
+            time_points, ratio_values, marker="", linestyle="-", label=sensor_label
+        )
+        axs[i].set_ylabel("Theta/Beta Ratio")
+        axs[i].grid(True)
+        axs[i].legend(loc="upper right")
+
+    axs[-1].set_xlabel("Time (seconds from start)")
+    fig.suptitle(f"Theta/Beta Ratios ({chunk_size}s Average)", y=1.02, fontsize=14)
+    fig.tight_layout()
+    plt.savefig("stats_imgs/theta_beta_ratios.png")
+    plt.show()
+
+
+def main_feature_extraction():
     db = next(get_db())
     try:
         vr_df, eeg_df = load_data_from_db(db)
-        eeg_df["start_stamp"] = pd.to_datetime(eeg_df["start_stamp"]).dt.tz_localize(
-            None
-        )
-        eeg_df["end_stamp"] = pd.to_datetime(eeg_df["end_stamp"]).dt.tz_localize(None)
+        # eeg_df["start_stamp"] = pd.to_datetime(eeg_df["start_stamp"]).dt.tz_localize(
+        #     None
+        # )
+        # eeg_df["end_stamp"] = pd.to_datetime(eeg_df["end_stamp"]).dt.tz_localize(None)
 
-        first_eeg_row = eeg_df.iloc[350].to_dict()
-        session_id = first_eeg_row["session_id"]
+        filtered_vr = vr_df[vr_df["obj_size"].notnull()]
+        filtered_vr = filtered_vr[filtered_vr["test_version"] == 1]
+        # session_id = first_vr_row["session_id"]
         # print(session_id)
         # session_id = "91ab78a3-7e9e-49d2-95c9-d53e0e202c83"
-        filtered_eeg = eeg_df[eeg_df["session_id"] == session_id]
-        filtered_vr = vr_df[vr_df["session_id"] == session_id]
+        # filtered_eeg = eeg_df[eeg_df["session_id"] == session_id]
+        # filtered_vr = vr_df[vr_df["session_id"] == session_id]
 
+        sessions = filtered_vr["session_id"].unique()
+        filtered_eeg = eeg_df[eeg_df["session_id"].isin([sessions[1]])]
+        filtered_vr = vr_df[vr_df["session_id"].isin([sessions[1]])]
         filtered_vr.sort_values(by="start_stamp", inplace=True)
-        filtered_vr = filtered_vr.iloc[1 : len(filtered_vr) - 1].reset_index(drop=True)
-        if len(filtered_vr) >= 2:
+        filtered_eeg.sort_values(by="start_stamp", inplace=True)
+
+        if len(filtered_vr) >= 2 and len(filtered_eeg) >= 2:
             last_two = filtered_vr.iloc[-2:]
             if (last_two["end_timer"] == 0).all():
                 filtered_vr = filtered_vr.iloc[:-1].reset_index(drop=True)
+                filtered_eeg = filtered_eeg.iloc[:-1].reset_index(drop=True)
 
-
-        # sensors_to_plot = [
-        #     "af3_alpha",
-        #     "f7_alpha",
-        #     "t7_alpha",
-        #     "p7_alpha",
-        #     "o1_alpha",
-        #     "fc6_alpha",
-        # ]
-
-        # # Plot all five in one figure with stacked subplots
-        # plot_multiple_sensors_avg(
-        #     filtered_eeg,
-        #     sensors_to_plot,
-        #     chunk_size=0.3,
-        #     impossible_threshold=20.0,
-        #     z_thresh=1,
-        #     max_iters=5,
-        # )
+        filtered_vr = filtered_vr.reset_index(drop=True)
+        filtered_eeg = filtered_eeg.reset_index(drop=True)
 
         # plot_performance(filtered_vr)
+
+        sensors_to_plot = [
+            "af3_alpha",
+            "f7_alpha",
+            "t7_alpha",
+            "p7_alpha",
+            "o1_alpha",
+            "fc6_alpha",
+        ]
+
+        plot_multiple_sensors_avg(
+            filtered_eeg,
+            sensors_to_plot,
+            chunk_size=0.3,
+            # impossible_threshold=20.0,
+            z_thresh=1,
+            max_iters=5,
+        )
+
+        sensor_pairs = [
+            ["af3_theta", "af3_beta_l", "af3_beta_h"],
+            ["f7_theta", "f7_beta_l", "f7_beta_h"],
+            ["t7_theta", "t7_beta_l", "t7_beta_h"],
+            ["p7_theta", "p7_beta_l", "p7_beta_h"],
+            ["o1_theta", "o1_beta_l", "o1_beta_h"],
+            ["fc6_theta", "fc6_beta_l", "fc6_beta_h"],
+        ]
+        plot_theta_beta_ratios(
+            eeg_df=filtered_eeg,
+            sensor_pairs=sensor_pairs,
+            chunk_size=0.3,
+            impossible_threshold=20.0,
+            z_thresh=1,
+            max_iters=5,
+            combine_betas=True
+        )
+
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    main_feature_extraction()

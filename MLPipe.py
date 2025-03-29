@@ -122,20 +122,20 @@ def build_feature_table(vr_df, eeg_df):
     assert len(vr_df) == len(eeg_df)
 
 
-    performance_metric = compute_performance(vr_df)
+    vr_df = compute_performance(vr_df)
 
     for _, vr_row in vr_df.iterrows():
         round_session_id = vr_row["session_id"]
         round_start = vr_row["start_stamp"]
         round_end = vr_row["end_stamp"]
 
-
-        print(_)
         print(eeg_df.iloc[_])
         matching_eeg = eeg_df.iloc[_]
         if matching_eeg.empty:
 
             continue
+
+        #TODO: add performance
 
 
         eeg_features = extract_eeg_features_for_round(matching_eeg, round_start, round_end)
@@ -155,6 +155,7 @@ def build_feature_table(vr_df, eeg_df):
         # row_features.update(eye_gaze_features)
 
         feature_rows.append(row_features)
+    print(vr_df["performance"])
 
     return pd.DataFrame(feature_rows)
 
@@ -200,31 +201,27 @@ def main_feature_extraction():
     db = next(get_db())
     try:
         vr_df, eeg_df = load_data_from_db(db)
-        # eeg_df["start_stamp"] = pd.to_datetime(eeg_df["start_stamp"]).dt.tz_localize(
-        #     None
-        # )
-        # eeg_df["end_stamp"] = pd.to_datetime(eeg_df["end_stamp"]).dt.tz_localize(None)
 
-        first_eeg_row = eeg_df.iloc[350].to_dict()
-        session_id = first_eeg_row["session_id"]
-        # print(session_id)
-        # session_id = "91ab78a3-7e9e-49d2-95c9-d53e0e202c83"
-        filtered_eeg = eeg_df[eeg_df["session_id"] == session_id]
-        filtered_vr = vr_df[vr_df["session_id"] == session_id]
+        filtered_vr = vr_df[vr_df["obj_size"].notnull()]
+        filtered_vr = filtered_vr[filtered_vr["test_version"] == 1]
 
-        filtered_vr.sort_values(by="start_stamp", inplace=True)
+
+        sessions = filtered_vr['session_id'].unique()
+        filtered_eeg = eeg_df[eeg_df["session_id"].isin(sessions)]
         filtered_eeg.sort_values(by="start_stamp", inplace=True)
-        print(filtered_vr.iloc[2]["start_stamp"], filtered_eeg.iloc[2]["start_stamp"])
-        # print(filtered_vr.iloc[83]["start_stamp"], filtered_eeg.iloc[85]["start_stamp"])
-        filtered_vr = filtered_vr.iloc[2:].reset_index(drop=True)
-        filtered_eeg = filtered_eeg.iloc[2:].reset_index(drop=True)
+        filtered_vr.sort_values(by="start_stamp", inplace=True)
+
+        
         if len(filtered_vr) >= 2 and len(filtered_eeg) >= 2:
             last_two = filtered_vr.iloc[-2:]
             if (last_two["end_timer"] == 0).all():
                 filtered_vr = filtered_vr.iloc[:-1].reset_index(drop=True)
                 filtered_eeg = filtered_eeg.iloc[:-1].reset_index(drop=True)
+        
+        filtered_vr = filtered_vr.reset_index(drop=True)
+        filtered_eeg = filtered_eeg.reset_index(drop=True)
 
-        print(build_feature_table(filtered_vr, filtered_eeg))
+        build_feature_table(filtered_vr, filtered_eeg).to_csv('feature_table.csv', index=False)
 
     finally:
         db.close()
