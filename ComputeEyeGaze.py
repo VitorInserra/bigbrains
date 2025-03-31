@@ -71,6 +71,7 @@ def plot_eye_gaze_percentages(vr_df, row_range=None):
     ax.legend(title="Object")
     plt.tight_layout()
     plt.xticks(rotation=45)
+    plt.savefig("stats_imgs/eye_gaze_ratios.png")
     plt.show()
 
 
@@ -87,7 +88,7 @@ def main_feature_extraction():
         session_id = first_eeg_row["session_id"]
         print(session_id)
         # print(session_id)
-        # session_id = "91ab78a3-7e9e-49d2-95c9-d53e0e202c83"
+        session_id = "90884ec0-ea3f-4efb-a7cb-054b6741e8d4"
         filtered_eeg = eeg_df[eeg_df["session_id"] == session_id]
         filtered_vr = vr_df[vr_df["session_id"] == session_id]
 

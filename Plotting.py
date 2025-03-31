@@ -8,37 +8,43 @@ from db import get_db
 from MLPipe import load_data_from_db
 
 
-def plot_performance(df: pd.DataFrame):
+def plot_performance(df: pd.DataFrame, file_path="03-30-2025", save_extension="many"):
+    # Sort by start_stamp so that plotting is in chronological order
+    df = df.sort_values(by="start_stamp").reset_index(drop=True)
+
+    # Create an integer array [0, 1, 2, ..., n-1] to serve as our x-values
+    x_vals = np.arange(len(df))
+
     df["timer_diff"] = df["initial_timer"] - df["end_timer"]
 
     plt.figure()
-    plt.plot(df["start_stamp"], df["timer_diff"], marker="o")
+    plt.scatter(x_vals, df["timer_diff"], marker="o")
     plt.title("Timer difference")
     plt.xlabel("Start Timestamp")
     plt.ylabel("Timer Difference")
     plt.xticks(rotation=45)  # rotate x-axis labels if needed
     plt.tight_layout()  # fix layout issues
-    plt.savefig("stats_imgs/timer_diff")
+    plt.savefig(f"stats_imgs/{file_path}/timer_diff_{save_extension}.png")
 
     df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
 
     plt.figure()
-    plt.plot(df["start_stamp"], df["rot_diff"], marker="o")
+    plt.scatter(x_vals, df["rot_diff"], marker="o")
     plt.title("Rotation")
     plt.xlabel("Start Timestamp")
     plt.ylabel("Rotation Difference")
     plt.xticks(rotation=45)  # rotate x-axis labels if needed
     plt.tight_layout()  # fix layout issues
-    plt.savefig("stats_imgs/rotation_diff")
+    plt.savefig(f"stats_imgs/{file_path}/rotation_diff_{save_extension}.png")
 
     plt.figure()
-    plt.plot(df["start_stamp"], df["obj_size"], marker="o")
+    plt.scatter(x_vals, df["obj_size"], marker="o")
     plt.title("Object_size")
     plt.xlabel("Start Timestamp")
-    plt.ylabel("Performance")
+    plt.ylabel("Number of blocks")
     plt.xticks(rotation=45)  # rotate x-axis labels if needed
     plt.tight_layout()  # fix layout issues
-    plt.savefig("stats_imgs/obj_size")
+    plt.savefig(f"stats_imgs/{file_path}/obj_size_{save_extension}.png")
 
     df["rot_ratio"] = df["expected_rotation"] / df["obj_rotation"]
 
@@ -56,13 +62,13 @@ def plot_performance(df: pd.DataFrame):
     # df["performance"] = df["rot_ratio"]*df["obj_size"] + 0.8*(df["initial_timer"] - df["end_timer"])
 
     plt.figure()
-    plt.plot(df["start_stamp"], df["performance"], marker="o")
+    plt.scatter(x_vals, df["performance"], marker="o")
     plt.title("Performance")
     plt.xlabel("Start Timestamp")
     plt.ylabel("Performance")
     plt.xticks(rotation=45)  # rotate x-axis labels if needed
     plt.tight_layout()  # fix layout issues
-    plt.savefig("stats_imgs/perf")
+    plt.savefig(f"stats_imgs/{file_path}/perf_{save_extension}.png")
     plt.show()
 
     df["timer_diff"] = df["initial_timer"] - df["end_timer"]
@@ -96,7 +102,7 @@ def plot_performance(df: pd.DataFrame):
 
     plt.colorbar()
     plt.tight_layout()
-    plt.savefig("stats_imgs/correlation_matrix.png")
+    plt.savefig(f"stats_imgs/{file_path}/correlation_matrix_{save_extension}.png")
 
 
 def plot_multiple_sensors_avg(
@@ -363,71 +369,69 @@ def main_feature_extraction():
     db = next(get_db())
     try:
         vr_df, eeg_df = load_data_from_db(db)
-        # eeg_df["start_stamp"] = pd.to_datetime(eeg_df["start_stamp"]).dt.tz_localize(
-        #     None
-        # )
-        # eeg_df["end_stamp"] = pd.to_datetime(eeg_df["end_stamp"]).dt.tz_localize(None)
 
-        filtered_vr = vr_df[vr_df["obj_size"].notnull()]
-        filtered_vr = filtered_vr[filtered_vr["test_version"] == 1]
-        # session_id = first_vr_row["session_id"]
-        # print(session_id)
-        # session_id = "91ab78a3-7e9e-49d2-95c9-d53e0e202c83"
-        # filtered_eeg = eeg_df[eeg_df["session_id"] == session_id]
-        # filtered_vr = vr_df[vr_df["session_id"] == session_id]
+        # Convert columns to datetime if necessary
+        vr_df["start_stamp"] = pd.to_datetime(vr_df["start_stamp"])
+        vr_df["end_stamp"] = pd.to_datetime(vr_df["end_stamp"])
+        eeg_df["start_stamp"] = pd.to_datetime(eeg_df["start_stamp"])
+        eeg_df["end_stamp"] = pd.to_datetime(eeg_df["end_stamp"])
 
+        # Optional filtering for VR data
+        filtered_vr = vr_df[vr_df["obj_size"].notnull()].copy()
+        filtered_vr = filtered_vr[filtered_vr["test_version"] == 1].copy()
+
+        # Only keep rows whose session_id is in VR data
         sessions = filtered_vr["session_id"].unique()
-        filtered_eeg = eeg_df[eeg_df["session_id"].isin([sessions[1]])]
-        filtered_vr = vr_df[vr_df["session_id"].isin([sessions[1]])]
-        filtered_vr.sort_values(by="start_stamp", inplace=True)
-        filtered_eeg.sort_values(by="start_stamp", inplace=True)
+        filtered_eeg = eeg_df[eeg_df["session_id"].isin(sessions)].copy()
 
+        # Sort by start_stamp
+        filtered_vr = filtered_vr.sort_values(by="start_stamp").reset_index(drop=True)
+        filtered_eeg = filtered_eeg.sort_values(by="start_stamp").reset_index(drop=True)
+
+        # If we need to remove the last row(s) if the last two have end_timer == 0
         if len(filtered_vr) >= 2 and len(filtered_eeg) >= 2:
             last_two = filtered_vr.iloc[-2:]
             if (last_two["end_timer"] == 0).all():
                 filtered_vr = filtered_vr.iloc[:-1].reset_index(drop=True)
                 filtered_eeg = filtered_eeg.iloc[:-1].reset_index(drop=True)
 
-        filtered_vr = filtered_vr.reset_index(drop=True)
-        filtered_eeg = filtered_eeg.reset_index(drop=True)
+        plot_performance(filtered_vr)
 
-        # plot_performance(filtered_vr)
+        # sensors_to_plot = [
+        #     "af3_alpha",
+        #     "f7_alpha",
+        #     "t7_alpha",
+        #     "p7_alpha",
+        #     "o1_alpha",
+        #     "fc6_alpha",
+        # ]
 
-        sensors_to_plot = [
-            "af3_alpha",
-            "f7_alpha",
-            "t7_alpha",
-            "p7_alpha",
-            "o1_alpha",
-            "fc6_alpha",
-        ]
+        # plot_multiple_sensors_avg(
+        #     filtered_eeg,
+        #     sensors_to_plot,
+        #     chunk_size=0.3,
+        #     # impossible_threshold=20.0,
+        #     z_thresh=1,
+        #     max_iters=5,
+        # )
 
-        plot_multiple_sensors_avg(
-            filtered_eeg,
-            sensors_to_plot,
-            chunk_size=0.3,
-            # impossible_threshold=20.0,
-            z_thresh=1,
-            max_iters=5,
-        )
-
-        sensor_pairs = [
-            ["af3_theta", "af3_beta_l", "af3_beta_h"],
-            ["f7_theta", "f7_beta_l", "f7_beta_h"],
-            ["t7_theta", "t7_beta_l", "t7_beta_h"],
-            ["p7_theta", "p7_beta_l", "p7_beta_h"],
-            ["o1_theta", "o1_beta_l", "o1_beta_h"],
-            ["fc6_theta", "fc6_beta_l", "fc6_beta_h"],
-        ]
-        plot_theta_beta_ratios(
-            eeg_df=filtered_eeg,
-            sensor_pairs=sensor_pairs,
-            chunk_size=0.3,
-            impossible_threshold=20.0,
-            z_thresh=1,
-            max_iters=5,
-            combine_betas=True
-        )
+        # sensor_pairs = [
+        #     ["af3_theta", "af3_beta_l", "af3_beta_h"],
+        #     ["f7_theta", "f7_beta_l", "f7_beta_h"],
+        #     ["t7_theta", "t7_beta_l", "t7_beta_h"],
+        #     ["p7_theta", "p7_beta_l", "p7_beta_h"],
+        #     ["o1_theta", "o1_beta_l", "o1_beta_h"],
+        #     ["fc6_theta", "fc6_beta_l", "fc6_beta_h"],
+        # ]
+        # plot_theta_beta_ratios(
+        #     eeg_df=filtered_eeg,
+        #     sensor_pairs=sensor_pairs,
+        #     chunk_size=0.3,
+        #     impossible_threshold=20.0,
+        #     z_thresh=1,
+        #     max_iters=5,
+        #     combine_betas=True
+        # )
 
     finally:
         db.close()

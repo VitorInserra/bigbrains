@@ -43,6 +43,7 @@ def load_data_from_db(db_session: Session):
     eeg_data = []
     for row in eeg_rows:
         row_dict = {
+            "id": row.id,
             "session_id": row.session_id,
             "start_stamp": row.start_stamp,
             "end_stamp": row.end_stamp,
