@@ -5,8 +5,8 @@ from models.VRDataModel import VRDataModel
 from models.EpocXDataModel import EpocXDataModel
 from db import get_db
 import numpy as np
-from Plotting import plot_all
-from ComputeEyeGaze import plot_gaze
+from compute_stats.Plotting import plot_all, compute_performance
+from compute_stats.ComputeEyeGaze import plot_gaze
 import datetime
 
 
@@ -79,13 +79,24 @@ def load_data_from_db(db_session: Session):
     return vr_df, eeg_df
 
 
-def extract_eeg_features_for_round(eeg_row, round_start, round_end):
-    """
-    Example: If you saved 'af3' as an array of band-power samples that exactly
-    matches round_start→round_end, you can compute summary stats here.
-    """
-    features = {}
+def clean_sensor_data(sensor_data, max_iters=5, z_thresh=1):
+    s = pd.Series(sensor_data).interpolate(method="linear")
+    for _ in range(max_iters):
+        mean_val = s.mean()
+        std_val = s.std()
+        z_scores = (s - mean_val).abs() / std_val
+        outliers = z_scores > z_thresh
+        if not outliers.any():
+            break
+        s[outliers] = np.nan
+        s = s.interpolate(method="linear")
+    return s.to_numpy()
 
+
+def extract_eeg_features_for_round(
+    eeg_row, round_start, round_end, max_iters=5, z_thresh=3
+):
+    features = {}
     for channel_name in [
         "AF3",
         "F7",
@@ -109,19 +120,16 @@ def extract_eeg_features_for_round(eeg_row, round_start, round_end):
                 features[f"{column_name}_mean"] = 0
                 features[f"{column_name}_std"] = 0
             else:
-                series = pd.Series(channel_data)
+                # Clean the sensor data before extracting features
+                cleaned_data = clean_sensor_data(channel_data, max_iters, z_thresh)
+                series = pd.Series(cleaned_data)
                 features[f"{column_name}_mean"] = series.mean()
                 features[f"{column_name}_std"] = series.std()
-
     return features
 
-def extract_full_eeg_features(eeg_row, round_start, round_end):
-    """
-    Example: If you saved 'af3' as an array of band-power samples that exactly
-    matches round_start→round_end, you can compute summary stats here.
-    """
-    features = {}
 
+def extract_full_eeg_features(eeg_row, round_start, round_end, max_iters=5, z_thresh=3):
+    features = {}
     for channel_name in [
         "AF3",
         "F7",
@@ -141,8 +149,13 @@ def extract_full_eeg_features(eeg_row, round_start, round_end):
         for band in ["theta", "alpha", "beta_l", "beta_h", "gamma"]:
             column_name = f"{channel_name.lower()}_{band.lower()}"
             channel_data = eeg_row[column_name]
-            features[f"{column_name}"] = channel_data
-
+            if channel_data:
+                # Replace raw data with cleaned data
+                features[f"{column_name}"] = clean_sensor_data(
+                    channel_data, max_iters, z_thresh
+                )
+            else:
+                features[f"{column_name}"] = channel_data
     return features
 
 
@@ -188,6 +201,7 @@ def build_feature_table(vr_df, eeg_df):
 
     return pd.DataFrame(feature_rows)
 
+
 def build_full_feature_table(vr_df, eeg_df):
     """
     Creates a final DataFrame where each row = 1 VR round + summarized EEG features.
@@ -208,9 +222,7 @@ def build_full_feature_table(vr_df, eeg_df):
 
             continue
 
-        eeg_features = extract_full_eeg_features(
-            matching_eeg, round_start, round_end
-        )
+        eeg_features = extract_full_eeg_features(matching_eeg, round_start, round_end)
 
         # eye_gaze_features = summarize_eye_gaze(vr_row["eye_interactables"])
 
@@ -247,23 +259,6 @@ def clean_sensor_data(sensor_data, max_iters=5, z_thresh=3):
         s = s.interpolate(method="linear")
 
     return sensor_data
-
-
-def compute_performance(df: pd.DataFrame):
-    df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"] 
-
-    # 20% tolerance on rotation gives us 252/360
-    # df["rot_diff"] = np.where(df["rot_diff"] < 0, 0, df["rot_diff"])
-    # avg = np.mean(df["rot_diff"])
-    # df["rot_diff"] = np.where(df["rot_diff"] == 0, avg, df["rot_diff"])
-
-    df["performance"] = (
-        ((1 - ((df["rot_diff"])/(df["expected_rotation"]))))**0.3
-        * ((1/df["obj_size"]))
-        * ((df["initial_timer"] - df["end_timer"]/df["initial_timer"])**0.6)
-    )
-
-    return df
 
 
 def main_feature_extraction():
@@ -311,8 +306,8 @@ def main_feature_extraction():
 
         # plot_all(filtered_vr, filtered_eeg)
         # plot_gaze(filtered_vr)
-        # table = build_feature_table(filtered_vr, filtered_eeg)
-        # table.to_csv("feature_table.csv")
+        table = build_feature_table(filtered_vr, filtered_eeg)
+        table.to_csv("feature_table.csv")
         table = build_full_feature_table(filtered_vr, filtered_eeg)
         table.to_csv("full_feature_table.csv")
 
