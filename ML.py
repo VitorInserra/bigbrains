@@ -9,6 +9,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 
+from sklearn.model_selection import GridSearchCV
+
 # Suppose you’ve already loaded your data into a DataFrame `df`,
 # with your target in the column 'performance_metric'.
 
@@ -27,12 +29,35 @@ exclude_cols = [
     "test_version",
     target_col,
 ]
-
-gamma_delta_cols = [col for col in df.columns if "gamma" in col.lower() or "delta" in col.lower()]
-exclude_cols.extend(gamma_delta_cols)
-
-# (Optional) Remove duplicates in case of overlap
 exclude_cols = list(set(exclude_cols))
+
+
+relevant_sensors = [
+    "fz", "f3", "f4", "f7", "f8",     # some frontal leads 
+    "fc3", "fc4", "af3", "af4",       # potential mid-frontal leads
+    "p3", "p4", "p7", "p8", "pz",     # parietal
+    "o1", "o2", "oz",                 # occipital
+    # plus any others you consider relevant
+]
+relevant_bands = ["theta", "alpha", "beta", "delta:"]
+
+
+def is_relevant_column(col):
+    lc = col.lower()
+    sensor_match = any(sensor in lc for sensor in relevant_sensors)
+    band_match = any(band in lc for band in relevant_bands)
+    return sensor_match and band_match
+
+# Build the final list of columns to keep
+keep_cols = [col for col in df.columns if is_relevant_column(col)]
+
+# Also keep your target column, e.g. "performance_metric"
+keep_cols.append("performance_metric")
+
+# Now, create a new DataFrame with only relevant columns
+df_relevant = df[keep_cols]
+
+print("Kept columns:", df_relevant.columns)
 
 
 def svr(df, target_col, exclude_cols):
@@ -68,7 +93,7 @@ def random_forest(df, target_col, exclude_cols):
     pipeline = Pipeline(
         [
             ("scaler", StandardScaler()),
-            ("rf", RandomForestRegressor(n_estimators=100, random_state=42)),
+            ("rf", RandomForestRegressor(n_estimators=300, random_state=42)),
         ]
     )
 
@@ -84,22 +109,38 @@ def mlp(df, target_col, exclude_cols):
     print("##### MLP #####")
     X = df.drop(columns=exclude_cols, errors="ignore")
     y = df[target_col].values
+
     pipeline = Pipeline(
         [
             ("scaler", StandardScaler()),
             (
                 "mlp",
                 MLPRegressor(
-                    hidden_layer_sizes=(100,),  # single hidden layer of 100 neurons
+                    hidden_layer_sizes=(128, 64, 32),  # single hidden layer of 100 neurons
                     activation="relu",  # activation function for hidden layer
                     solver="adam",  # weight optimization method
                     alpha=0.0001,  # L2 penalty (regularization term)
-                    max_iter=500,  # maximum number of iterations
+                    max_iter=2000,  # maximum number of iterations
                     random_state=42,  # reproducibility
                 ),
             ),
         ]
     )
+    param_grid = {
+        "mlp__hidden_layer_sizes": [(64,), (128,), (64, 32), (128, 64, 32)],
+        "mlp__alpha": [1e-4, 1e-3, 1e-2],
+        "mlp__max_iter": [2000, 5000]
+    }
+    grid_search = GridSearchCV(
+        pipeline, param_grid=param_grid,
+        cv=5, scoring="neg_mean_squared_error"
+    )
+    grid_search.fit(X, y)
+
+    print("Best params:", grid_search.best_params_)
+    print("Best score:", -grid_search.best_score_)  # since MSE is negative
+
+
 
     # We’ll do 5-fold cross-validation
     kfold = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -116,6 +157,6 @@ def mlp(df, target_col, exclude_cols):
     print("Cross-validated R^2 (MLP):", r2)
 
 
-svr(df, target_col, exclude_cols)
-random_forest(df, target_col, exclude_cols)
+# svr(df_relevant, target_col, exclude_cols)
+random_forest(df_relevant, target_col, exclude_cols)
 mlp(df, target_col, exclude_cols)

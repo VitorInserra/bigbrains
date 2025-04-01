@@ -4,8 +4,7 @@ from scipy.stats import pearsonr
 import itertools
 import matplotlib.pyplot as plt
 import numpy as np
-from db import get_db
-from MLPipe import load_data_from_db
+import datetime
 
 
 def plot_performance(df: pd.DataFrame, file_path="03-30-2025", save_extension="many"):
@@ -46,18 +45,17 @@ def plot_performance(df: pd.DataFrame, file_path="03-30-2025", save_extension="m
     plt.tight_layout()  # fix layout issues
     plt.savefig(f"stats_imgs/{file_path}/obj_size_{save_extension}.png")
 
-    df["rot_ratio"] = df["expected_rotation"] / df["obj_rotation"]
+    df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
 
     # 20% tolerance on rotation gives us 252/360
-    df["rot_ratio"] = np.where(df["rot_ratio"] > (360 / 252), 0, df["rot_ratio"])
-    avg = np.mean(df["rot_ratio"])
-    df["rot_ratio"] = np.where(df["rot_ratio"] == 0, avg, df["rot_ratio"])
+    # df["rot_diff"] = np.where(df["rot_diff"] < 0, 0, df["rot_diff"])
+    # avg = np.mean(df["rot_diff"])
+    # df["rot_diff"] = np.where(df["rot_diff"] == 0, avg, df["rot_diff"])
 
     df["performance"] = (
-        df["rot_ratio"]
-        * df["obj_size"]
-        * (df["initial_timer"] - df["end_timer"])
-        / df["initial_timer"]
+        ((1 - ((df["rot_diff"])/(df["expected_rotation"]))))**0.3
+        * ((1/df["obj_size"]))
+        * ((df["initial_timer"] - df["end_timer"]/df["initial_timer"])**0.6)
     )
     # df["performance"] = df["rot_ratio"]*df["obj_size"] + 0.8*(df["initial_timer"] - df["end_timer"])
 
@@ -112,6 +110,7 @@ def plot_multiple_sensors_avg(
     impossible_threshold=150.0,
     z_thresh=1,
     max_iters=5,
+    file_path="03-30-2025",
 ):
     """
     Plots multiple sensors (e.g. alpha, beta_l, beta_h, etc.) from the same dataset,
@@ -208,7 +207,7 @@ def plot_multiple_sensors_avg(
     axs[-1].set_xlabel("Time (seconds from start)")
     fig.suptitle(f"Sensors Average Every {chunk_size} Seconds", y=1.02, fontsize=14)
     fig.tight_layout()
-    plt.savefig("stats_imgs/alpha_ratios.png")
+    plt.savefig(f"stats_imgs/{file_path}/alpha_ratios.png")
     plt.show()
 
 
@@ -220,6 +219,7 @@ def plot_theta_beta_ratios(
     z_thresh=1,
     max_iters=5,
     combine_betas=True,
+    file_path="03-30-2025",
 ):
     """
     Plot theta/beta ratios for multiple sensors (each in its own subplot).
@@ -361,81 +361,50 @@ def plot_theta_beta_ratios(
     axs[-1].set_xlabel("Time (seconds from start)")
     fig.suptitle(f"Theta/Beta Ratios ({chunk_size}s Average)", y=1.02, fontsize=14)
     fig.tight_layout()
-    plt.savefig("stats_imgs/theta_beta_ratios.png")
+    plt.savefig(f"stats_imgs/{file_path}/theta_beta_ratios.png")
     plt.show()
 
 
-def main_feature_extraction():
-    db = next(get_db())
-    try:
-        vr_df, eeg_df = load_data_from_db(db)
-
-        # Convert columns to datetime if necessary
-        vr_df["start_stamp"] = pd.to_datetime(vr_df["start_stamp"])
-        vr_df["end_stamp"] = pd.to_datetime(vr_df["end_stamp"])
-        eeg_df["start_stamp"] = pd.to_datetime(eeg_df["start_stamp"])
-        eeg_df["end_stamp"] = pd.to_datetime(eeg_df["end_stamp"])
-
-        # Optional filtering for VR data
-        filtered_vr = vr_df[vr_df["obj_size"].notnull()].copy()
-        filtered_vr = filtered_vr[filtered_vr["test_version"] == 1].copy()
-
-        # Only keep rows whose session_id is in VR data
-        sessions = filtered_vr["session_id"].unique()
-        filtered_eeg = eeg_df[eeg_df["session_id"].isin(sessions)].copy()
-
-        # Sort by start_stamp
-        filtered_vr = filtered_vr.sort_values(by="start_stamp").reset_index(drop=True)
-        filtered_eeg = filtered_eeg.sort_values(by="start_stamp").reset_index(drop=True)
-
-        # If we need to remove the last row(s) if the last two have end_timer == 0
-        if len(filtered_vr) >= 2 and len(filtered_eeg) >= 2:
-            last_two = filtered_vr.iloc[-2:]
-            if (last_two["end_timer"] == 0).all():
-                filtered_vr = filtered_vr.iloc[:-1].reset_index(drop=True)
-                filtered_eeg = filtered_eeg.iloc[:-1].reset_index(drop=True)
+def plot_all(filtered_vr, filtered_eeg):
 
         plot_performance(filtered_vr)
 
-        # sensors_to_plot = [
-        #     "af3_alpha",
-        #     "f7_alpha",
-        #     "t7_alpha",
-        #     "p7_alpha",
-        #     "o1_alpha",
-        #     "fc6_alpha",
-        # ]
+        sensors_to_plot = [
+            "af3_alpha",
+            "f7_alpha",
+            "t7_alpha",
+            "p7_alpha",
+            "o1_alpha",
+            "fc6_alpha",
+        ]
 
-        # plot_multiple_sensors_avg(
-        #     filtered_eeg,
-        #     sensors_to_plot,
-        #     chunk_size=0.3,
-        #     # impossible_threshold=20.0,
-        #     z_thresh=1,
-        #     max_iters=5,
-        # )
+        plot_multiple_sensors_avg(
+            filtered_eeg,
+            sensors_to_plot,
+            chunk_size=0.3,
+            # impossible_threshold=20.0,
+            z_thresh=1,
+            max_iters=5,
+        )
 
-        # sensor_pairs = [
-        #     ["af3_theta", "af3_beta_l", "af3_beta_h"],
-        #     ["f7_theta", "f7_beta_l", "f7_beta_h"],
-        #     ["t7_theta", "t7_beta_l", "t7_beta_h"],
-        #     ["p7_theta", "p7_beta_l", "p7_beta_h"],
-        #     ["o1_theta", "o1_beta_l", "o1_beta_h"],
-        #     ["fc6_theta", "fc6_beta_l", "fc6_beta_h"],
-        # ]
-        # plot_theta_beta_ratios(
-        #     eeg_df=filtered_eeg,
-        #     sensor_pairs=sensor_pairs,
-        #     chunk_size=0.3,
-        #     impossible_threshold=20.0,
-        #     z_thresh=1,
-        #     max_iters=5,
-        #     combine_betas=True
-        # )
-
-    finally:
-        db.close()
+        sensor_pairs = [
+            ["af3_theta", "af3_beta_l", "af3_beta_h"],
+            ["f7_theta", "f7_beta_l", "f7_beta_h"],
+            ["t7_theta", "t7_beta_l", "t7_beta_h"],
+            ["p7_theta", "p7_beta_l", "p7_beta_h"],
+            ["o1_theta", "o1_beta_l", "o1_beta_h"],
+            ["fc6_theta", "fc6_beta_l", "fc6_beta_h"],
+        ]
+        plot_theta_beta_ratios(
+            eeg_df=filtered_eeg,
+            sensor_pairs=sensor_pairs,
+            chunk_size=0.3,
+            impossible_threshold=20.0,
+            z_thresh=1,
+            max_iters=5,
+            combine_betas=True
+        )
 
 
 if __name__ == "__main__":
-    main_feature_extraction()
+    plot_all()

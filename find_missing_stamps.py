@@ -1,6 +1,7 @@
 import pandas as pd
 from db import get_db
 from MLPipe import load_data_from_db
+import datetime
 
 
 def check_vr_epoc_gaps(vr_data, epoc_data, gap_threshold=3):
@@ -71,7 +72,7 @@ def main_feature_extraction():
 
         # Optional filtering for VR data
         filtered_vr = vr_df[vr_df["obj_size"].notnull()].copy()
-        filtered_vr = filtered_vr[filtered_vr["test_version"] == 1].copy()
+        filtered_vr = filtered_vr[filtered_vr["test_version"] == 2].copy()
 
         # Only keep rows whose session_id is in VR data
         sessions = filtered_vr["session_id"].unique()
@@ -89,9 +90,9 @@ def main_feature_extraction():
                 filtered_eeg = filtered_eeg.iloc[:-1].reset_index(drop=True)
 
         # --- Filter only today's rows ---
-        today = pd.Timestamp.today().date()
-        filtered_vr = filtered_vr[filtered_vr["start_stamp"].dt.date == today].copy()
-        filtered_eeg = filtered_eeg[filtered_eeg["start_stamp"].dt.date == today].copy()
+        today = datetime.datetime.today() - datetime.timedelta(days=2)
+        filtered_vr = filtered_vr[filtered_vr["start_stamp"] >= today].copy()
+        filtered_eeg = filtered_eeg[filtered_eeg["start_stamp"] >= today].copy()
         # --------------------------------
         # Now check for time gaps among today's records only
         check_vr_epoc_gaps(filtered_vr, filtered_eeg, gap_threshold=1)

@@ -5,6 +5,9 @@ from models.VRDataModel import VRDataModel
 from models.EpocXDataModel import EpocXDataModel
 from db import get_db
 import numpy as np
+from Plotting import plot_all
+from ComputeEyeGaze import plot_gaze
+import datetime
 
 
 def load_data_from_db(db_session: Session):
@@ -112,6 +115,35 @@ def extract_eeg_features_for_round(eeg_row, round_start, round_end):
 
     return features
 
+def extract_full_eeg_features(eeg_row, round_start, round_end):
+    """
+    Example: If you saved 'af3' as an array of band-power samples that exactly
+    matches round_start→round_end, you can compute summary stats here.
+    """
+    features = {}
+
+    for channel_name in [
+        "AF3",
+        "F7",
+        "F3",
+        "FC5",
+        "T7",
+        "P7",
+        "O1",
+        "O2",
+        "P8",
+        "T8",
+        "FC6",
+        "F4",
+        "F8",
+        "AF4",
+    ]:
+        for band in ["theta", "alpha", "beta_l", "beta_h", "gamma"]:
+            column_name = f"{channel_name.lower()}_{band.lower()}"
+            channel_data = eeg_row[column_name]
+            features[f"{column_name}"] = channel_data
+
+    return features
 
 
 def build_feature_table(vr_df, eeg_df):
@@ -122,24 +154,21 @@ def build_feature_table(vr_df, eeg_df):
     print(len(vr_df), len(eeg_df))
     assert len(vr_df) == len(eeg_df)
 
-
     vr_df = compute_performance(vr_df)
 
-    for _, vr_row in vr_df.iterrows():
+    for i, (vr_index, vr_row) in enumerate(vr_df.iterrows()):
         round_session_id = vr_row["session_id"]
         round_start = vr_row["start_stamp"]
         round_end = vr_row["end_stamp"]
 
-        print(eeg_df.iloc[_])
-        matching_eeg = eeg_df.iloc[_]
+        matching_eeg = eeg_df.iloc[i]
         if matching_eeg.empty:
 
             continue
 
-        #TODO: add performance
-
-
-        eeg_features = extract_eeg_features_for_round(matching_eeg, round_start, round_end)
+        eeg_features = extract_eeg_features_for_round(
+            matching_eeg, round_start, round_end
+        )
 
         # eye_gaze_features = summarize_eye_gaze(vr_row["eye_interactables"])
 
@@ -156,7 +185,48 @@ def build_feature_table(vr_df, eeg_df):
         # row_features.update(eye_gaze_features)
 
         feature_rows.append(row_features)
-    print(vr_df["performance"])
+
+    return pd.DataFrame(feature_rows)
+
+def build_full_feature_table(vr_df, eeg_df):
+    """
+    Creates a final DataFrame where each row = 1 VR round + summarized EEG features.
+    """
+    feature_rows = []
+    print(len(vr_df), len(eeg_df))
+    assert len(vr_df) == len(eeg_df)
+
+    vr_df = compute_performance(vr_df)
+
+    for i, (vr_index, vr_row) in enumerate(vr_df.iterrows()):
+        round_session_id = vr_row["session_id"]
+        round_start = vr_row["start_stamp"]
+        round_end = vr_row["end_stamp"]
+
+        matching_eeg = eeg_df.iloc[i]
+        if matching_eeg.empty:
+
+            continue
+
+        eeg_features = extract_full_eeg_features(
+            matching_eeg, round_start, round_end
+        )
+
+        # eye_gaze_features = summarize_eye_gaze(vr_row["eye_interactables"])
+
+        row_features = {
+            "session_id": round_session_id,
+            "round_id": vr_row["id"],
+            "start_time": round_start,
+            "end_time": round_end,
+            "score": vr_row["score"],
+            "test_version": vr_row["test_version"],
+            "performance_metric": vr_row["performance"],
+        }
+        row_features.update(eeg_features)
+        # row_features.update(eye_gaze_features)
+
+        feature_rows.append(row_features)
 
     return pd.DataFrame(feature_rows)
 
@@ -180,22 +250,20 @@ def clean_sensor_data(sensor_data, max_iters=5, z_thresh=3):
 
 
 def compute_performance(df: pd.DataFrame):
-    df["rot_ratio"] = df["expected_rotation"] / df["obj_rotation"]
+    df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"] 
 
     # 20% tolerance on rotation gives us 252/360
-    df["rot_ratio"] = np.where(df["rot_ratio"] > (360 / 252), 0, df["rot_ratio"])
-    avg = np.mean(df["rot_ratio"])
-    df["rot_ratio"] = np.where(df["rot_ratio"] == 0, avg, df["rot_ratio"])
+    # df["rot_diff"] = np.where(df["rot_diff"] < 0, 0, df["rot_diff"])
+    # avg = np.mean(df["rot_diff"])
+    # df["rot_diff"] = np.where(df["rot_diff"] == 0, avg, df["rot_diff"])
 
     df["performance"] = (
-        df["rot_ratio"]
-        * df["obj_size"]
-        * (df["initial_timer"] - df["end_timer"])
-        / df["initial_timer"]
+        ((1 - ((df["rot_diff"])/(df["expected_rotation"]))))**0.3
+        * ((1/df["obj_size"]))
+        * ((df["initial_timer"] - df["end_timer"]/df["initial_timer"])**0.6)
     )
 
     return df
-
 
 
 def main_feature_extraction():
@@ -203,26 +271,50 @@ def main_feature_extraction():
     try:
         vr_df, eeg_df = load_data_from_db(db)
 
-        filtered_vr = vr_df[vr_df["obj_size"].notnull()]
-        filtered_vr = filtered_vr[filtered_vr["test_version"] == 1]
+        vr_df["start_stamp"] = pd.to_datetime(vr_df["start_stamp"]).dt.tz_localize(None)
+        vr_df["end_stamp"] = pd.to_datetime(vr_df["end_stamp"]).dt.tz_localize(None)
+        eeg_df["start_stamp"] = pd.to_datetime(eeg_df["start_stamp"]).dt.tz_localize(
+            None
+        )
+        eeg_df["end_stamp"] = pd.to_datetime(eeg_df["end_stamp"]).dt.tz_localize(None)
 
+        # Convert columns to datetime if necessary
+        vr_df["start_stamp"] = pd.to_datetime(vr_df["start_stamp"])
+        vr_df["end_stamp"] = pd.to_datetime(vr_df["end_stamp"])
+        eeg_df["start_stamp"] = pd.to_datetime(eeg_df["start_stamp"])
+        eeg_df["end_stamp"] = pd.to_datetime(eeg_df["end_stamp"])
 
-        sessions = filtered_vr['session_id'].unique()
-        filtered_eeg = eeg_df[eeg_df["session_id"].isin(sessions)]
-        filtered_eeg.sort_values(by="start_stamp", inplace=True)
-        filtered_vr.sort_values(by="start_stamp", inplace=True)
+        # Optional filtering for VR data
+        filtered_vr = vr_df[vr_df["obj_size"].notnull()].copy()
+        filtered_vr = filtered_vr[filtered_vr["test_version"] == 1].copy()
 
-        
+        # Only keep rows whose session_id is in VR data
+        sessions = filtered_vr["session_id"].unique()
+        filtered_eeg = eeg_df[eeg_df["session_id"].isin(sessions)].copy()
+
+        # Sort by start_stamp
+        filtered_vr = filtered_vr.sort_values(by="start_stamp").reset_index(drop=True)
+        filtered_eeg = filtered_eeg.sort_values(by="start_stamp").reset_index(drop=True)
+
+        # If we need to remove the last row(s) if the last two have end_timer == 0
         if len(filtered_vr) >= 2 and len(filtered_eeg) >= 2:
             last_two = filtered_vr.iloc[-2:]
             if (last_two["end_timer"] == 0).all():
                 filtered_vr = filtered_vr.iloc[:-1].reset_index(drop=True)
                 filtered_eeg = filtered_eeg.iloc[:-1].reset_index(drop=True)
-        
-        filtered_vr = filtered_vr.reset_index(drop=True)
-        filtered_eeg = filtered_eeg.reset_index(drop=True)
 
-        build_feature_table(filtered_vr, filtered_eeg).to_csv('feature_table.csv', index=False)
+        # --- Filter only today's rows ---
+        today = datetime.datetime.today() - datetime.timedelta(days=2)
+        filtered_vr = filtered_vr[filtered_vr["start_stamp"] >= today].copy()
+        filtered_eeg = filtered_eeg[filtered_eeg["start_stamp"] >= today].copy()
+        # --------------------------------
+
+        # plot_all(filtered_vr, filtered_eeg)
+        # plot_gaze(filtered_vr)
+        # table = build_feature_table(filtered_vr, filtered_eeg)
+        # table.to_csv("feature_table.csv")
+        table = build_full_feature_table(filtered_vr, filtered_eeg)
+        table.to_csv("full_feature_table.csv")
 
     finally:
         db.close()
