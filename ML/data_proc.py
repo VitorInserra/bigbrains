@@ -5,15 +5,14 @@ df = pd.read_csv("feature_table.csv")
 
 target_col = "performance_metric"
 
-# 2. Identify relevant EEG features
-exclude_cols = [
-    "session_id",
-    "round_id",
-    "start_time",
-    "end_time",
-    "score",
-    "test_version",
-]
+# exclude_cols = [
+#     "session_id",
+#     "round_id",
+#     "start_time",
+#     "end_time",
+#     "score",
+#     "test_version",
+# ]
 relevant_sensors = [
     "f3",
     "f4",
@@ -35,10 +34,12 @@ def is_relevant_column(col):
 
 # 3. Select columns
 keep_cols = []
-# keep_cols = [col for col in df.columns if is_relevant_column(col)]
-keep_cols += ["obj_rotation"] #, "eye_gameobj"]
+keep_cols = [col for col in df.columns if is_relevant_column(col)]
+keep_cols += ["obj_rotation", "start_time", "session_id"]
 keep_cols.append(target_col)
+
 df_relevant = df[keep_cols].dropna()
+df_relevant["start_time"] = pd.to_datetime(df_relevant["start_time"])
 
 Q1 = df_relevant[target_col].quantile(0.1)
 Q3 = df_relevant[target_col].quantile(0.9)

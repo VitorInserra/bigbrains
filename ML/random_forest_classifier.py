@@ -8,13 +8,15 @@ from data_proc import df_relevant
 
 target_col = "performance_metric"
 
+time_values = df_relevant["start_time"].values
+
 # 1. Prepare features and target
-X = df_relevant.drop(columns=[target_col]).values
+X = df_relevant.drop(columns=[target_col, "start_time"]).values
 y = df_relevant[target_col].values
 
-# 2. Transform continuous target into categorical labels
-# Define thresholds using quantiles (33.33% and 66.66% percentiles)
+
 q1, q2 = np.percentile(y, [20, 50])
+
 
 def label_performance(val):
     if val <= q1:
@@ -22,7 +24,8 @@ def label_performance(val):
     elif val <= q2:
         return "good"
     else:
-        return "bad"      # Lower values are considered good
+        return "bad"  # Lower values are considered good
+
 
 y_class = np.array([label_performance(val) for val in y])
 
@@ -31,12 +34,14 @@ scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
 # 4. Split the dataset into training and test sets
-X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y_class, test_size=0.2, random_state=42
+X_train, X_test, y_train, y_test, time_train, time_test = train_test_split(
+    X_scaled, y_class, time_values, test_size=0.2, random_state=42
 )
 
 # 5. Train Random Forest Classifier
-rf_clf = RandomForestClassifier(n_estimators=100, max_depth=16, random_state=42, n_jobs=-1)
+rf_clf = RandomForestClassifier(
+    n_estimators=100, max_depth=16, random_state=42, n_jobs=-1
+)
 rf_clf.fit(X_train, y_train)
 
 # 6. Predict and evaluate the classifier
@@ -71,7 +76,7 @@ plt.show()
 
 # 8. Plot Confusion Matrix
 plt.figure(figsize=(8, 6))
-plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
 plt.title("Confusion Matrix")
 plt.colorbar()
 tick_marks = np.arange(len(rf_clf.classes_))
@@ -79,13 +84,34 @@ plt.xticks(tick_marks, rf_clf.classes_, rotation=45)
 plt.yticks(tick_marks, rf_clf.classes_)
 
 # Add numbers inside each square of the confusion matrix
-thresh = cm.max() / 2.
+thresh = cm.max() / 2.0
 for i, j in np.ndindex(cm.shape):
-    plt.text(j, i, format(cm[i, j], 'd'),
-             horizontalalignment="center",
-             color="white" if cm[i, j] > thresh else "black")
+    plt.text(
+        j,
+        i,
+        format(cm[i, j], "d"),
+        horizontalalignment="center",
+        color="white" if cm[i, j] > thresh else "black",
+    )
 
-plt.ylabel('True label')
-plt.xlabel('Predicted label')
+plt.ylabel("True label")
+plt.xlabel("Predicted label")
+plt.tight_layout()
+plt.show()
+
+results_df = pd.DataFrame({"time": time_test, "y_actual": y_test, "y_pred": y_pred})
+
+results_df.sort_values("time", inplace=True)
+
+plt.figure(figsize=(10, 6))
+
+# Because it's classification ("good"/"bad"), one way is a scatter plot:
+plt.scatter(results_df["time"], results_df["y_actual"], label="Actual")
+plt.scatter(results_df["time"], results_df["y_pred"], label="Predicted", marker="x")
+
+plt.xlabel("Time")
+plt.ylabel("Class Label")
+plt.title("Actual vs. Predicted Performance Class over Time")
+plt.legend()
 plt.tight_layout()
 plt.show()

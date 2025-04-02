@@ -33,7 +33,7 @@ X_scaled = scaler.fit_transform(X)
 
 # 4. Split the dataset into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y_class, test_size=0.2, random_state=42
+    X_scaled, y_class, test_size=0.3, random_state=42
 )
 
 def mlp_classifier():
@@ -46,7 +46,7 @@ def mlp_classifier():
     ])
 
     # 6. Compile the model using a classification loss function and accuracy metric
-    opt = keras.optimizers.Adam(learning_rate=0.0005, beta_1=0.9, beta_2=0.999)
+    opt = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999)
     model.compile(optimizer=opt, loss="sparse_categorical_crossentropy", metrics=["accuracy"])
 
     # callback = keras.callbacks.EarlyStopping(
