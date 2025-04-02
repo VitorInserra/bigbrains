@@ -39,7 +39,7 @@ relevant_sensors = [
     "o2",
     "oz",
 ]
-relevant_bands = ["theta", "alpha", "beta", "delta"]
+relevant_bands = ["theta", "alpha", "beta"]
 
 
 def is_relevant_column(col):
@@ -100,14 +100,15 @@ print("Test MSE:", mse)
 print("Test MAE:", mae)
 print("R^2:", r2)
 
-
-
 import matplotlib.pyplot as plt
-
-plt.scatter(y_true, y_pred, alpha=0.6)
-plt.xlabel("True Performance")
-plt.ylabel("Predicted Performance")
-plt.title("Predicted vs. True Performance")
-plt.plot([0, 1.2], [0, 1.2], "r--")  # perfect prediction line
-plt.grid(True)
+plt.figure(figsize=(8, 6))
+plt.scatter(y_test, y_pred, alpha=0.5, label="Predictions")
+plt.xlabel("True Performance Metric (Normalized)")
+plt.ylabel("Predicted Performance Metric (Normalized)")
+plt.title(f"Predictions vs True Values (R² = {r2:.2f})")
+# Plot the identity line
+min_val = min(y_test.min(), y_pred.min())
+max_val = max(y_test.max(), y_pred.max())
+plt.plot([min_val, max_val], [min_val, max_val], "r--", label="Ideal")
+plt.legend()
 plt.show()

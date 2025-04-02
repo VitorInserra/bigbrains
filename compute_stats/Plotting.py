@@ -15,6 +15,18 @@ def plot_performance(df: pd.DataFrame, file_path="03-30-2025", save_extension="m
     x_vals = np.arange(len(df))
 
     df["timer_diff"] = df["initial_timer"] - df["end_timer"]
+    df = compute_performance(df)
+    # df["performance"] = df["rot_ratio"]*df["obj_size"] + 0.8*(df["initial_timer"] - df["end_timer"])
+
+    plt.figure()
+    plt.scatter(x_vals, df["performance"], marker="o")
+    plt.title("Performance")
+    plt.xlabel("Start Timestamp")
+    plt.ylabel("Performance")
+    plt.xticks(rotation=45)  # rotate x-axis labels if needed
+    plt.tight_layout()  # fix layout issues
+    plt.savefig(f"stats_imgs/{file_path}/perf_{save_extension}.png")
+    plt.show()
 
     plt.figure()
     plt.scatter(x_vals, df["timer_diff"], marker="o")
@@ -28,10 +40,10 @@ def plot_performance(df: pd.DataFrame, file_path="03-30-2025", save_extension="m
     df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
 
     plt.figure()
-    plt.scatter(x_vals, df["rot_diff"], marker="o")
+    plt.scatter(x_vals, df["expected_rotation"], marker="o")
     plt.title("Rotation")
     plt.xlabel("Start Timestamp")
-    plt.ylabel("Rotation Difference")
+    plt.ylabel("Expected Rotation")
     plt.xticks(rotation=45)  # rotate x-axis labels if needed
     plt.tight_layout()  # fix layout issues
     plt.savefig(f"stats_imgs/{file_path}/rotation_diff_{save_extension}.png")
@@ -52,51 +64,39 @@ def plot_performance(df: pd.DataFrame, file_path="03-30-2025", save_extension="m
     # avg = np.mean(df["rot_diff"])
     # df["rot_diff"] = np.where(df["rot_diff"] == 0, avg, df["rot_diff"])
 
-    df = compute_performance(df)
-    # df["performance"] = df["rot_ratio"]*df["obj_size"] + 0.8*(df["initial_timer"] - df["end_timer"])
 
-    plt.figure()
-    plt.scatter(x_vals, df["performance"], marker="o")
-    plt.title("Performance")
-    plt.xlabel("Start Timestamp")
-    plt.ylabel("Performance")
-    plt.xticks(rotation=45)  # rotate x-axis labels if needed
-    plt.tight_layout()  # fix layout issues
-    plt.savefig(f"stats_imgs/{file_path}/perf_{save_extension}.png")
-    plt.show()
+    # df["timer_diff"] = df["initial_timer"] - df["end_timer"]
+    # df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
+    # # df["obj_size"] is already present
 
-    df["timer_diff"] = df["initial_timer"] - df["end_timer"]
-    df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
-    # df["obj_size"] is already present
+    # cols_of_interest = ["timer_diff", "rot_diff"]
+    # corr_matrix = df[cols_of_interest].corr()
 
-    cols_of_interest = ["timer_diff", "rot_diff"]
-    corr_matrix = df[cols_of_interest].corr()
+    # # Pairwise Pearson correlation with significance testing
+    # for col1, col2 in itertools.combinations(cols_of_interest, 2):
+    #     # Drop any rows with NaNs in these two columns to avoid errors
+    #     valid_data = df[[col1, col2]].dropna()
+    #     if len(valid_data) < 2:
+    #         # Not enough data for correlation
+    #         print(f"Not enough data to correlate {col1} and {col2}.")
+    #         continue
 
-    # Pairwise Pearson correlation with significance testing
-    for col1, col2 in itertools.combinations(cols_of_interest, 2):
-        # Drop any rows with NaNs in these two columns to avoid errors
-        valid_data = df[[col1, col2]].dropna()
-        if len(valid_data) < 2:
-            # Not enough data for correlation
-            print(f"Not enough data to correlate {col1} and {col2}.")
-            continue
+    # # Compute correlation coefficient and p-value
+    # r_value, p_value = pearsonr(valid_data[col1], valid_data[col2])
 
-    # Compute correlation coefficient and p-value
-    r_value, p_value = pearsonr(valid_data[col1], valid_data[col2])
+    # print(f"Correlation between {col1} and {col2}:")
+    # print(f"  r = {r_value:.4f}, p = {p_value:.4g}\n")
+    # plt.figure()
+    # plt.imshow(corr_matrix, cmap="viridis", interpolation="nearest")
+    # plt.title("Correlation Matrix")
 
-    print(f"Correlation between {col1} and {col2}:")
-    print(f"  r = {r_value:.4f}, p = {p_value:.4g}\n")
-    plt.figure()
-    plt.imshow(corr_matrix, cmap="viridis", interpolation="nearest")
-    plt.title("Correlation Matrix")
+    # # Show column labels
+    # plt.xticks(range(len(cols_of_interest)), cols_of_interest, rotation=45)
+    # plt.yticks(range(len(cols_of_interest)), cols_of_interest)
 
-    # Show column labels
-    plt.xticks(range(len(cols_of_interest)), cols_of_interest, rotation=45)
-    plt.yticks(range(len(cols_of_interest)), cols_of_interest)
-
-    plt.colorbar()
-    plt.tight_layout()
-    plt.savefig(f"stats_imgs/{file_path}/correlation_matrix_{save_extension}.png")
+    # plt.colorbar()
+    # plt.tight_layout()
+    # plt.savefig(f"stats_imgs/{file_path}/correlation_matrix_{save_extension}.png")
 
 
 def compute_performance(df: pd.DataFrame):
@@ -107,11 +107,17 @@ def compute_performance(df: pd.DataFrame):
     # avg = np.mean(df["rot_diff"])
     # df["rot_diff"] = np.where(df["rot_diff"] == 0, avg, df["rot_diff"])
 
+    # df["performance"] = (df["initial_timer"] - df["end_timer"])
+
     df["performance"] = (
-        ((1 - ((df["rot_diff"])/(df["expected_rotation"])))**0.25)
-        * ((1/df["obj_size"])*0.15)
-        * ((df["initial_timer"] - df["end_timer"]/df["initial_timer"])**0.6)
+        (df["initial_timer"] - df["end_timer"])/(df["expected_rotation"]/500 + df["obj_size"]/18)
     )
+
+    # df["performance"] = (
+    #     ((1 - ((df["rot_diff"])/(df["expected_rotation"])))**0.25)
+    #     * ((1/df["obj_size"])**0.15)
+    #     * ((df["initial_timer"] - df["end_timer"]/df["initial_timer"])**0.6)
+    # )
 
     return df
 

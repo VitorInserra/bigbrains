@@ -22,17 +22,20 @@ def summarize_eye_gaze(eye_array):
     frac_outline = df["outline"].sum()
     frac_score = df["score"].sum()
 
-    print(frac_score)
-    print(len(df))
     if len(df) == 0:
-        return
+        return {
+            "frac_timer": 0,
+            "frac_gameobj": 0,
+            "frac_outline": 0,
+            "frac_score": 0,
+        }
     
-    return [
-        frac_timer/len(df),
-        frac_gameobj/len(df),
-        frac_outline/len(df),
-        frac_score/len(df),
-    ]
+    return {
+        "frac_timer": frac_timer/len(df),
+        "frac_gameobj": frac_gameobj/len(df),
+        "frac_outline": frac_outline/len(df),
+        "frac_score": frac_score/len(df),
+    }
 
 def plot_eye_gaze_percentages(vr_df, row_range=None):
     """
