@@ -141,7 +141,7 @@ results_df.sort_values("time", inplace=True)
 
 plt.figure(figsize=(10, 6))
 # For classification, scatter is more typical:
-plt.scatter(results_df["time"], results_df["y_actual"], label="Actual")
+plt.scatter(results_df["time"], results_df["y_actual"], label="Actual", linestyle='-', color='blue')
 plt.scatter(results_df["time"], results_df["y_pred"], label="Predicted", marker="x")
 
 plt.xlabel("Time")
