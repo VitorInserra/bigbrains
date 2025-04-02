@@ -35,7 +35,7 @@ def is_relevant_column(col):
 
 # 3. Select columns
 keep_cols = []
-keep_cols = [col for col in df.columns if is_relevant_column(col)]
+# keep_cols = [col for col in df.columns if is_relevant_column(col)]
 keep_cols += ["obj_rotation"] #, "eye_gameobj"]
 keep_cols.append(target_col)
 df_relevant = df[keep_cols].dropna()
