@@ -39,7 +39,7 @@ keep_cols = []
 keep_cols = [col for col in df.columns if is_relevant_column(col)]
 # keep_cols += ["start_time", "session_id"]
 keep_cols.append(target_col)
-# keep_cols.append("test_version")
+keep_cols.append("test_version")
 # keep_cols.append("obj_rotation")
 keep_cols.append("start_time")
 keep_cols.append("session_id")
