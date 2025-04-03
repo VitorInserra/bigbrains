@@ -141,12 +141,57 @@ results_df.sort_values("time", inplace=True)
 
 plt.figure(figsize=(10, 6))
 # For classification, scatter is more typical:
-plt.scatter(results_df["time"], results_df["y_actual"], label="Actual", linestyle='-', color='blue')
+plt.plot(
+    results_df["time"],
+    results_df["y_actual"],
+    label="Actual",
+    linestyle="-",
+    marker="o",
+)
 plt.scatter(results_df["time"], results_df["y_pred"], label="Predicted", marker="x")
 
 plt.xlabel("Time")
 plt.ylabel("Class Label")
 plt.title("Actual vs. Predicted Performance Class over Time")
 plt.legend()
+# --------------------------------------------------------
+# Add count and percentage labels for actual and predicted
+# --------------------------------------------------------
+from collections import Counter
+
+
+def get_label_stats(labels):
+    counts = Counter(labels)
+    total = sum(counts.values())
+    good = counts.get("good", 0)
+    bad = counts.get("bad", 0)
+    return {"good": f"{good} ({good/total:.1%})", "bad": f"{bad} ({bad/total:.1%})"}
+
+
+actual_stats = get_label_stats(results_df["y_actual"])
+pred_stats = get_label_stats(results_df["y_pred"])
+
+# Position for the text box
+text_x = results_df["time"].min()
+text_y = 1.2  # Above 'bad' line (1)
+
+summary_text = (
+    f"Actual:\n"
+    f"  good: {actual_stats['good']}\n"
+    f"  bad:  {actual_stats['bad']}\n\n"
+    f"Predicted:\n"
+    f"  good: {pred_stats['good']}\n"
+    f"  bad:  {pred_stats['bad']}"
+)
+
+plt.text(
+    text_x,
+    text_y,
+    summary_text,
+    fontsize=10,
+    bbox=dict(facecolor="white", edgecolor="black", boxstyle="round,pad=0.5"),
+)
+
+plt.ylim(-0.2, 1.5)
 plt.tight_layout()
 plt.show()

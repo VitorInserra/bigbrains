@@ -16,8 +16,10 @@ target_col = "performance_metric"
 relevant_sensors = [
     "f3",
     "f4",
+    "fc6",
     "fc3",
     "fc4",
+    # "fc5",
     "af3",
     "af4",
     "o1",
@@ -35,11 +37,15 @@ def is_relevant_column(col):
 # 3. Select columns
 keep_cols = []
 keep_cols = [col for col in df.columns if is_relevant_column(col)]
-keep_cols += ["obj_rotation", "start_time", "session_id"]
+# keep_cols += ["start_time", "session_id"]
 keep_cols.append(target_col)
+# keep_cols.append("test_version")
+# keep_cols.append("obj_rotation")
+keep_cols.append("start_time")
+keep_cols.append("session_id")
 
 df_relevant = df[keep_cols].dropna()
-df_relevant["start_time"] = pd.to_datetime(df_relevant["start_time"])
+# df_relevant["start_time"] = pd.to_datetime(df_relevant["start_time"])
 
 Q1 = df_relevant[target_col].quantile(0.1)
 Q3 = df_relevant[target_col].quantile(0.9)

@@ -6,6 +6,7 @@ from models.EpocXDataModel import EpocXDataModel
 
 def insert_eeg_db(db: Session, session_id: str, df: pd.DataFrame):
 
+    print(df)
     try:
         session_dump = {
             "start_stamp": datetime.fromtimestamp(df.iloc[0]["timestamp"]),

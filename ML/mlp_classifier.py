@@ -46,7 +46,7 @@ def mlp_classifier():
     ])
 
     # 6. Compile the model using a classification loss function and accuracy metric
-    opt = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999)
+    opt = keras.optimizers.Adam(learning_rate=0.0005, beta_1=0.9, beta_2=0.999)
     model.compile(optimizer=opt, loss="sparse_categorical_crossentropy", metrics=["accuracy"])
 
     # callback = keras.callbacks.EarlyStopping(
@@ -59,7 +59,7 @@ def mlp_classifier():
     model.fit(
         X_train, y_train,
         validation_data=(X_test, y_test),
-        epochs=100,
+        epochs=500,
         batch_size=32,
         # callbacks=[callback],
         verbose=1

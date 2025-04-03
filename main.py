@@ -137,11 +137,11 @@ async def data_dump(data: VRData, db: Session = Depends(get_db)):
 
 @app.get("/blink-sync")
 async def set_session_id():
-    start = time.time()
-    t = threading.Thread(target=init_blink_sync)
-    t.start()
-    time.sleep(3)
-    print(time.time() - start)
+    # start = time.time()
+    # t = threading.Thread(target=init_blink_sync)
+    # t.start()
+    # time.sleep(3)
+    # print(time.time() - start)
     return
 
 def init_blink_sync():

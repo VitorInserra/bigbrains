@@ -8,10 +8,10 @@ from data_proc import df_relevant
 
 target_col = "performance_metric"
 
-time_values = df_relevant["start_time"].values
+# time_values = df_relevant["start_time"].values
 
 # 1. Prepare features and target
-X = df_relevant.drop(columns=[target_col, "start_time"]).values
+X = df_relevant.drop(columns=[target_col]).values
 y = df_relevant[target_col].values
 
 
@@ -34,8 +34,8 @@ scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
 # 4. Split the dataset into training and test sets
-X_train, X_test, y_train, y_test, time_train, time_test = train_test_split(
-    X_scaled, y_class, time_values, test_size=0.2, random_state=42
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y_class, test_size=0.15, random_state=42
 )
 
 # 5. Train Random Forest Classifier
@@ -99,19 +99,19 @@ plt.xlabel("Predicted label")
 plt.tight_layout()
 plt.show()
 
-results_df = pd.DataFrame({"time": time_test, "y_actual": y_test, "y_pred": y_pred})
+# results_df = pd.DataFrame({"time": time_test, "y_actual": y_test, "y_pred": y_pred})
 
-results_df.sort_values("time", inplace=True)
+# results_df.sort_values("time", inplace=True)
 
-plt.figure(figsize=(10, 6))
+# plt.figure(figsize=(10, 6))
 
-# Because it's classification ("good"/"bad"), one way is a scatter plot:
-plt.scatter(results_df["time"], results_df["y_actual"], label="Actual")
-plt.scatter(results_df["time"], results_df["y_pred"], label="Predicted", marker="x")
+# # Because it's classification ("good"/"bad"), one way is a scatter plot:
+# plt.scatter(results_df["time"], results_df["y_actual"], label="Actual")
+# plt.scatter(results_df["time"], results_df["y_pred"], label="Predicted", marker="x")
 
-plt.xlabel("Time")
-plt.ylabel("Class Label")
-plt.title("Actual vs. Predicted Performance Class over Time")
-plt.legend()
-plt.tight_layout()
-plt.show()
+# plt.xlabel("Time")
+# plt.ylabel("Class Label")
+# plt.title("Actual vs. Predicted Performance Class over Time")
+# plt.legend()
+# plt.tight_layout()
+# plt.show()

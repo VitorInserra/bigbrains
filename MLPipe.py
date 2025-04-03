@@ -218,7 +218,7 @@ def main_feature_extraction():
 
         # Optional filtering for VR data
         filtered_vr = vr_df[vr_df["obj_size"].notnull()].copy()
-        filtered_vr = filtered_vr[filtered_vr["test_version"].isin([1])].copy()
+        filtered_vr = filtered_vr[filtered_vr["test_version"].isin([1, 2])].copy()
 
         # Only keep rows whose session_id is in VR data
         sessions = filtered_vr["session_id"].unique()
@@ -236,13 +236,14 @@ def main_feature_extraction():
                 filtered_eeg = filtered_eeg.iloc[:-1].reset_index(drop=True)
 
         # --- Filter only today's rows ---
-        today = datetime.datetime.today() - datetime.timedelta(days=3)
-        filtered_vr = filtered_vr[filtered_vr["start_stamp"] >= today].copy()
-        filtered_eeg = filtered_eeg[filtered_eeg["start_stamp"] >= today].copy()
+        # today = datetime.datetime.today() - datetime.timedelta(days=)
+        # filtered_vr = filtered_vr[filtered_vr["start_stamp"] >= today].copy()
+        # filtered_eeg = filtered_eeg[filtered_eeg["start_stamp"] >= today].copy()
         # --------------------------------
 
         # Check for alignment in start_stamp between the two dataframes
         i = 0
+        print(filtered_vr)
         while i < min(len(filtered_vr), len(filtered_eeg)):
             vr_start = filtered_vr.loc[i, "start_stamp"]
             eeg_start = filtered_eeg.loc[i, "start_stamp"]
@@ -273,7 +274,7 @@ def main_feature_extraction():
             else:
                 i += 1
 
-        plot_all(filtered_vr, filtered_eeg)
+        # plot_all(filtered_vr, filtered_eeg)
         table = build_feature_table(filtered_vr, filtered_eeg)
         table.to_csv("feature_table.csv")
     finally:

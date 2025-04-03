@@ -110,7 +110,7 @@ def compute_performance(df: pd.DataFrame):
     # df["performance"] = (df["initial_timer"] - df["end_timer"])
 
     df["performance"] = (
-        (df["initial_timer"] - df["end_timer"])/(df["expected_rotation"]/500 + df["obj_size"]/18)
+        (df["initial_timer"] - df["end_timer"])/(df["expected_rotation"]/df["expected_rotation"].max() + df["obj_size"]/df["obj_size"].max())
     )
 
     # df["performance"] = (
