@@ -16,9 +16,6 @@ def rfc(target_session):
 
     # print("Train shape:", train_df.shape)
     # print("Test shape:", test_df.shape)
-
-
-    # We'll keep 'start_time' separate so we can plot by time later.
     X_train = train_df.drop(
         columns=[target_col, "session_id", "start_time", "test_version"]
     ).values
@@ -29,16 +26,13 @@ def rfc(target_session):
     ).values
     y_test = test_df[target_col].values
 
-    # Store time for plotting
     time_test = test_df["start_time"].values
 
 
-    #    (Quantiles computed from training set)
 
     q1, q2 = np.percentile(y_train, [20, 50])
 
     def label_performance(val):
-        # Lower = "good", higher = "bad"
         if val <= q1:
             return "good"
         elif val <= q2:
@@ -212,41 +206,64 @@ t2_count = 0
 t1_total = 0
 t2_total = 0
 
+# for session_id in df_relevant["session_id"].unique():
+
+#     summary = rfc(session_id)
+
+#     if summary["test_version"] == 1:
+#         t1_count += 1
+#         t1_pred["good"] += summary["pred"]["good"]
+#         t1_pred["bad"] += summary["pred"]["bad"]
+#         t1_actual["good"] += summary["actual"]["good"]
+#         t1_actual["bad"] += summary["actual"]["bad"]
+#         acc1 += summary["acc"]
+#         t1_total += summary["pred"]["total"]
+
+#     elif summary["test_version"] == 2:
+#         t2_count += 1
+#         t2_pred["good"] += summary["pred"]["good"]
+#         t2_pred["bad"] += summary["pred"]["bad"]
+#         t2_actual["good"] += summary["actual"]["good"]
+#         t2_actual["bad"] += summary["actual"]["bad"]
+#         acc2 += summary["acc"]
+#         t2_total += summary["actual"]["total"]
+
 for session_id in df_relevant["session_id"].unique():
 
     summary = rfc(session_id)
 
     if summary["test_version"] == 1:
         t1_count += 1
-        t1_pred["good"] += summary["pred"]["good"]
-        t1_pred["bad"] += summary["pred"]["bad"]
-        t1_actual["good"] += summary["actual"]["good"]
-        t1_actual["bad"] += summary["actual"]["bad"]
-        acc1 += summary["acc"]
+        t1_pred["good"] += summary["pred"]["good"]*summary["pred"]["total"]
+        t1_pred["bad"] += summary["pred"]["bad"]*summary["pred"]["total"]
+        t1_actual["good"] += summary["actual"]["good"]*summary["pred"]["total"]
+        t1_actual["bad"] += summary["actual"]["bad"]*summary["pred"]["total"]
+        acc1 += summary["acc"]*summary["pred"]["total"] 
         t1_total += summary["pred"]["total"]
 
     elif summary["test_version"] == 2:
         t2_count += 1
-        t2_pred["good"] += summary["pred"]["good"]
-        t2_pred["bad"] += summary["pred"]["bad"]
-        t2_actual["good"] += summary["actual"]["good"]
-        t2_actual["bad"] += summary["actual"]["bad"]
-        acc2 += summary["acc"]
+        t2_pred["good"] += summary["pred"]["good"]*summary["pred"]["total"]
+        t2_pred["bad"] += summary["pred"]["bad"]*summary["pred"]["total"]
+        t2_actual["good"] += summary["actual"]["good"]*summary["pred"]["total"]
+        t2_actual["bad"] += summary["actual"]["bad"]*summary["pred"]["total"]
+        acc2 += summary["acc"]*summary["pred"]["total"]
         t2_total += summary["actual"]["total"]
 
-t1_pred["good"] /= t1_count
-t1_pred["bad"] /= t1_count
-t1_actual["good"] /= t1_count
-t1_actual["bad"] /= t1_count
-acc1 /= t1_count
-print(t1_pred, t1_actual, acc1, t1_count)
 
-t2_pred["good"] /= t2_count
-t2_pred["bad"] /= t2_count
-t2_actual["good"] /= t2_count
-t2_actual["bad"] /= t2_count
-acc2 /= t2_count
-print(t2_pred, t2_actual, acc2, t2_count)
+t1_pred["good"] /= t1_total
+t1_pred["bad"] /= t1_total
+t1_actual["good"] /= t1_total
+t1_actual["bad"] /= t1_total
+acc1 /= t1_total
+print(t1_pred, t1_actual, acc1, t2_total)
+
+t2_pred["good"] /= t2_total
+t2_pred["bad"] /= t2_total
+t2_actual["good"] /= t2_total
+t2_actual["bad"] /= t2_total
+acc2 /= t2_total
+print(t2_pred, t2_actual, acc2, t2_total)
 
 
 labels = ["Version A", "Version B"]
@@ -265,8 +282,8 @@ plt.ylabel("Proportion of Good Results")
 plt.title("Good Results Comparison")
 
 legend_info = (
-    f"A) N trials: {t1_count}, Prediction Accuracy: {acc1*100:.3f}%\n"
-    f"B) N trials {t2_count},  Prediction Accuracy {acc2*100:.3f}%"
+    f"A) N trials: {t1_total}, Prediction Accuracy: {acc1*100:.3f}%\n"
+    f"B) N trials {t2_total},  Prediction Accuracy {acc2*100:.3f}%"
 )
 
 plt.legend(title=legend_info)
@@ -298,18 +315,59 @@ plt.legend(title=legend_info)
 plt.show()
 
 
+
+
+t1_pred = {"good": 0, "bad": 0}
+t1_actual = {"good": 0, "bad": 0}
+t2_pred = {"good": 0, "bad": 0}
+t2_actual = {"good": 0, "bad": 0}
+acc1 = 0
+acc2 = 0
+
+t1_count = 0
+t2_count = 0
+
+t1_total = 0
+t2_total = 0
+
+
+
+for session_id in df_relevant["session_id"].unique():
+
+    summary = rfc(session_id)
+
+    if summary["test_version"] == 1:
+        t1_count += 1
+        t1_pred["good"] += summary["pred"]["good"]*summary["pred"]["total"]
+        t1_pred["bad"] += summary["pred"]["bad"]*summary["pred"]["total"]
+        t1_actual["good"] += summary["actual"]["good"]*summary["pred"]["total"]
+        t1_actual["bad"] += summary["actual"]["bad"]*summary["pred"]["total"]
+        acc1 += summary["acc"]
+        t1_total += summary["pred"]["total"]
+
+    elif summary["test_version"] == 2:
+        t2_count += 1
+        t2_pred["good"] += summary["pred"]["good"]*summary["pred"]["total"]
+        t2_pred["bad"] += summary["pred"]["bad"]*summary["pred"]["total"]
+        t2_actual["good"] += summary["actual"]["good"]*summary["pred"]["total"]
+        t2_actual["bad"] += summary["actual"]["bad"]*summary["pred"]["total"]
+        acc2 += summary["acc"]
+        t2_total += summary["actual"]["total"]
+
 from scipy.stats import chi2_contingency
 
-good_pred_t1_count = t1_pred["good"] * t1_count * t1_total
-bad_pred_t1_count  = t1_pred["bad"]  * t1_count  * t1_total
-good_pred_t2_count = t2_pred["good"] * t2_count * t2_total
-bad_pred_t2_count  = t2_pred["bad"]  * t2_count * t2_total
+print(t1_total, t2_total)
+
+good_pred_t1_count = t1_pred["good"] #* t1_total
+bad_pred_t1_count  = t1_pred["bad"]   #* t1_total
+good_pred_t2_count = t2_pred["good"] #* t2_total
+bad_pred_t2_count  = t2_pred["bad"]  #* t2_total
 
 
-good_actual_t1_count = t1_actual["good"] * t1_count * t1_total
-bad_actual_t1_count  = t1_actual["bad"]  * t1_count * t1_total
-good_actual_t2_count = t2_actual["good"] * t2_count * t2_total
-bad_actual_t2_count  = t2_actual["bad"]  * t2_count * t2_total
+good_actual_t1_count = t1_actual["good"] #* t1_total
+bad_actual_t1_count  = t1_actual["bad"]   #* t1_total
+good_actual_t2_count = t2_actual["good"] #* t2_count #* t2_total
+bad_actual_t2_count  = t2_actual["bad"]  #* t2_count #* t2_total
 
 
 observed_pred = [

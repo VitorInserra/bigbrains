@@ -10,42 +10,35 @@ from data_proc import df_relevant
 
 target_col = "performance_metric"
 
-# 1. Prepare features and target
 X = df_relevant.drop(columns=[target_col]).values
 y = df_relevant[target_col].values
 
-# 2. Transform continuous target into categorical labels using quantiles
-# Define thresholds using the 33.33rd and 66.66th percentiles
 q1, q2 = np.percentile(y, [20, 50])
 def label_performance(val):
     if val <= q1:
-        return 0  # good (lower is better)
+        return 0
     elif val <= q2:
-        return 0  # average
+        return 0
     else:
-        return 1  # bad
+        return 1
 
 y_class = np.array([label_performance(val) for val in y])
 
-# 3. Scale features
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-# 4. Split the dataset into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(
     X_scaled, y_class, test_size=0.3, random_state=42
 )
 
 def mlp_classifier():
-    # 5. Build MLP for classification
     model = keras.Sequential([
         layers.Dense(16, activation="relu", input_shape=(X.shape[1],)),
         layers.Dense(8, activation="relu"),
         layers.Dense(4, activation="relu"),
-        layers.Dense(2, activation="softmax"),  # 3 output classes: good, average, bad
+        layers.Dense(2, activation="softmax"), 
     ])
 
-    # 6. Compile the model using a classification loss function and accuracy metric
     opt = keras.optimizers.Adam(learning_rate=0.0005, beta_1=0.9, beta_2=0.999)
     model.compile(optimizer=opt, loss="sparse_categorical_crossentropy", metrics=["accuracy"])
 
@@ -55,7 +48,6 @@ def mlp_classifier():
     #     restore_best_weights=True
     # )
     
-    # 7. Train the classifier
     model.fit(
         X_train, y_train,
         validation_data=(X_test, y_test),
@@ -68,17 +60,14 @@ def mlp_classifier():
 
 model = mlp_classifier()
 
-# 8. Evaluate the classifier
 loss, accuracy = model.evaluate(X_test, y_test, verbose=0)
 print("Test Accuracy:", accuracy)
 
-# Make predictions and generate a classification report
 y_pred_probs = model.predict(X_test)
 y_pred = np.argmax(y_pred_probs, axis=1)
 print("Classification Report:")
 print(classification_report(y_test, y_pred, target_names=["good", "bad"]))
 
-# Optionally, print the confusion matrix
 cm = confusion_matrix(y_test, y_pred)
 print("Confusion Matrix:")
 print(cm)
@@ -98,7 +87,7 @@ tick_marks = np.arange(len(class_names))
 plt.xticks(tick_marks, class_names, rotation=45)
 plt.yticks(tick_marks, class_names)
 
-# Add the counts in each cell
+
 thresh = cm.max() / 2
 for i, j in np.ndindex(cm.shape):
     plt.text(

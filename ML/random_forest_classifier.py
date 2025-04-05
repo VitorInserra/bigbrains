@@ -5,12 +5,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from data_proc import df_relevant
+from sklearn.tree import export_graphviz
+import graphviz
+import matplotlib.pyplot as plt
 
 target_col = "performance_metric"
 
 # time_values = df_relevant["start_time"].values
 
-# 1. Prepare features and target
 X = df_relevant.drop(columns=[target_col]).values
 y = df_relevant[target_col].values
 
@@ -24,27 +26,69 @@ def label_performance(val):
     elif val <= q2:
         return "good"
     else:
-        return "bad"  # Lower values are considered good
+        return "bad" 
 
 
 y_class = np.array([label_performance(val) for val in y])
-
-# 3. Optional: scale features (RF doesn't require scaling but it can help for consistency)
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
-
-# 4. Split the dataset into training and test sets
 X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y_class, test_size=0.15, random_state=42
+    X_scaled, y_class, test_size=0.2, random_state=42
 )
 
-# 5. Train Random Forest Classifier
-rf_clf = RandomForestClassifier(
-    n_estimators=100, max_depth=16, random_state=42, n_jobs=-1
+depths = list(range(4, 24))
+estimators = list(range(40, 240, 20))
+acc_matrix = np.zeros((len(depths), len(estimators)))
+
+for i_idx, depth in enumerate(depths):
+    for j_idx, n_est in enumerate(estimators):
+        rf_clf = RandomForestClassifier(
+            n_estimators=n_est, max_depth=depth, random_state=42, n_jobs=-1
+        )
+        rf_clf.fit(X_train, y_train)
+
+        y_pred = rf_clf.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+
+        acc_matrix[i_idx, j_idx] = acc
+
+plt.figure(figsize=(8, 6))
+
+plt.imshow(
+    acc_matrix,
+    origin="lower",
+    aspect="auto",
+    extent=[min(estimators), max(estimators), min(depths), max(depths)]
 )
+
+plt.colorbar(label="Accuracy")
+plt.xlabel("Number of Estimators (n_estimators)")
+plt.ylabel("Max Depth")
+plt.title("Random Forest Accuracy Heatmap")
+
+plt.show()
+
+rf_clf = RandomForestClassifier(
+        n_estimators=100, max_depth=6, random_state=42, n_jobs=-1
+    )
 rf_clf.fit(X_train, y_train)
 
-# 6. Predict and evaluate the classifier
+
+final_tree = rf_clf.estimators_[-1]
+
+dot_data = export_graphviz(
+    final_tree,
+    out_file=None,
+    feature_names=df_relevant.drop(columns=[target_col]).columns,
+    filled=True,
+    rounded=True,
+    special_characters=True
+)
+
+graph = graphviz.Source(dot_data)
+graph.render("final_tree")  
+
+
 y_pred = rf_clf.predict(X_test)
 acc = accuracy_score(y_test, y_pred)
 report = classification_report(y_test, y_pred)
@@ -57,9 +101,6 @@ print(report)
 print("Confusion Matrix:")
 print(cm)
 
-import matplotlib.pyplot as plt
-
-# 7. Plot Feature Importances
 feature_importances = rf_clf.feature_importances_
 feature_names = df_relevant.drop(columns=[target_col]).columns
 
@@ -74,7 +115,6 @@ plt.gca().invert_yaxis()
 plt.tight_layout()
 plt.show()
 
-# 8. Plot Confusion Matrix
 plt.figure(figsize=(8, 6))
 plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
 plt.title("Confusion Matrix")
@@ -83,7 +123,6 @@ tick_marks = np.arange(len(rf_clf.classes_))
 plt.xticks(tick_marks, rf_clf.classes_, rotation=45)
 plt.yticks(tick_marks, rf_clf.classes_)
 
-# Add numbers inside each square of the confusion matrix
 thresh = cm.max() / 2.0
 for i, j in np.ndindex(cm.shape):
     plt.text(
