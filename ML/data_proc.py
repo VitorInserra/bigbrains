@@ -14,18 +14,20 @@ target_col = "performance_metric"
 #     "test_version",
 # ]
 relevant_sensors = [
-    "f3",
-    "f4",
-    "fc6",
-    "fc3",
-    "fc4",
+    # "f3",
+    # "f4",
+    "f7",
+    "f8",
+    # "fc6",
+    # "fc3",
+    # "fc4",
     # "fc5",
-    "af3",
-    "af4",
-    "o1",
+    # "af3",
+    # "af4",
+    # "o1",
     "o2",
 ]
-relevant_bands = ["theta", "alpha", "beta"]
+relevant_bands = ["theta", "alpha", "beta_l", "beta_h"]
 
 def is_relevant_column(col):
     lc = col.lower()

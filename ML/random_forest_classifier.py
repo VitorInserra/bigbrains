@@ -36,40 +36,40 @@ X_train, X_test, y_train, y_test = train_test_split(
     X_scaled, y_class, test_size=0.2, random_state=42
 )
 
-depths = list(range(4, 24))
-estimators = list(range(40, 240, 20))
-acc_matrix = np.zeros((len(depths), len(estimators)))
+# depths = list(range(4, 24))
+# estimators = list(range(40, 240, 20))
+# acc_matrix = np.zeros((len(depths), len(estimators)))
 
-for i_idx, depth in enumerate(depths):
-    for j_idx, n_est in enumerate(estimators):
-        rf_clf = RandomForestClassifier(
-            n_estimators=n_est, max_depth=depth, random_state=42, n_jobs=-1
-        )
-        rf_clf.fit(X_train, y_train)
+# for i_idx, depth in enumerate(depths):
+#     for j_idx, n_est in enumerate(estimators):
+#         rf_clf = RandomForestClassifier(
+#             n_estimators=n_est, max_depth=depth, random_state=42, n_jobs=-1
+#         )
+#         rf_clf.fit(X_train, y_train)
 
-        y_pred = rf_clf.predict(X_test)
-        acc = accuracy_score(y_test, y_pred)
+#         y_pred = rf_clf.predict(X_test)
+#         acc = accuracy_score(y_test, y_pred)
 
-        acc_matrix[i_idx, j_idx] = acc
+#         acc_matrix[i_idx, j_idx] = acc
 
-plt.figure(figsize=(8, 6))
+# plt.figure(figsize=(8, 6))
 
-plt.imshow(
-    acc_matrix,
-    origin="lower",
-    aspect="auto",
-    extent=[min(estimators), max(estimators), min(depths), max(depths)]
-)
+# plt.imshow(
+#     acc_matrix,
+#     origin="lower",
+#     aspect="auto",
+#     extent=[min(estimators), max(estimators), min(depths), max(depths)]
+# )
 
-plt.colorbar(label="Accuracy")
-plt.xlabel("Number of Estimators (n_estimators)")
-plt.ylabel("Max Depth")
-plt.title("Random Forest Accuracy Heatmap")
+# plt.colorbar(label="Accuracy")
+# plt.xlabel("Number of Estimators (n_estimators)")
+# plt.ylabel("Max Depth")
+# plt.title("Random Forest Accuracy Heatmap")
 
-plt.show()
+# plt.show()
 
 rf_clf = RandomForestClassifier(
-        n_estimators=100, max_depth=6, random_state=42, n_jobs=-1
+        n_estimators=120, max_depth=14, random_state=42, n_jobs=-1
     )
 rf_clf.fit(X_train, y_train)
 

@@ -52,7 +52,7 @@ def rfc(target_session):
 
 
     rf_clf = RandomForestClassifier(
-        n_estimators=100, max_depth=16, random_state=42, n_jobs=-1
+        n_estimators=120, max_depth=14, random_state=42, n_jobs=-1
     )
     rf_clf.fit(X_train_scaled, y_train_class)
 
