@@ -28,8 +28,9 @@ scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
 X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y_class, test_size=0.3, random_state=42
+    X_scaled, y_class, test_size=0.15, random_state=42
 )
+
 
 def mlp_classifier():
     model = keras.Sequential([
@@ -51,7 +52,7 @@ def mlp_classifier():
     model.fit(
         X_train, y_train,
         validation_data=(X_test, y_test),
-        epochs=500,
+        epochs=200,
         batch_size=32,
         # callbacks=[callback],
         verbose=1

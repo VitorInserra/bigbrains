@@ -275,8 +275,10 @@ def main_feature_extraction():
                 i += 1
 
         # plot_all(filtered_vr, filtered_eeg)
-        table = build_feature_table(filtered_vr, filtered_eeg)
-        table.to_csv("feature_table.csv")
+        from plot_difficulty import plot_session_features
+        plot_session_features(filtered_vr)
+        # table = build_feature_table(filtered_vr, filtered_eeg)
+        # table.to_csv("feature_table.csv")
     finally:
         db.close()
 

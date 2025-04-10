@@ -29,7 +29,6 @@ def rfc(target_session):
     time_test = test_df["start_time"].values
 
 
-
     q1, q2 = np.percentile(y_train, [20, 50])
 
     def label_performance(val):
@@ -267,23 +266,23 @@ print(t2_pred, t2_actual, acc2, t2_total)
 
 
 labels = ["Version A", "Version B"]
-pred_good = [t1_pred["good"], t2_pred["good"]]
 actual_good = [t1_actual["good"], t2_actual["good"]]
+pred_good = [t1_pred["good"], t2_pred["good"]]
 
 x = range(len(labels))
 width = 0.4
 
 plt.figure(figsize=(12, 8))
-plt.bar(x, pred_good, width, label="Predicted Good")
 plt.bar([i + width for i in x], actual_good, width, label="Actual Good")
+plt.bar(x, pred_good, width, label="Predicted Good")
 
 plt.xticks([i + width/2 for i in x], labels)
 plt.ylabel("Proportion of Good Results")
 plt.title("Good Results Comparison")
 
 legend_info = (
-    f"A) N trials: {t1_total}, Prediction Accuracy: {acc1*100:.3f}%\n"
-    f"B) N trials {t2_total},  Prediction Accuracy {acc2*100:.3f}%"
+    f"A) N trials: {t1_total}, Cross-validation Prediction Accuracy: {acc1*100:.3f}%\n"
+    f"B) N trials {t2_total},  Cross-validation Prediction Accuracy {acc2*100:.3f}%"
 )
 
 plt.legend(title=legend_info)
@@ -298,16 +297,16 @@ x = range(len(labels))
 width = 0.4
 
 plt.figure(figsize=(12, 8))
-plt.bar(x, pred_bad, width, label="Predicted Bad")
 plt.bar([i + width for i in x], actual_bad, width, label="Actual Bad")
+plt.bar(x, pred_bad, width, label="Predicted Bad")
 
 plt.xticks([i + width/2 for i in x], labels)
 plt.ylabel("Proportion of Bad Results")
 plt.title("Bad Results Comparison")
 
 legend_info = (
-    f"A) N trials: {t1_count}, Prediction Accuracy: {acc1*100:.3f}%\n"
-    f"B) N trials {t2_count},  Prediction Accuracy {acc2*100:.3f}%"
+    f"A) N trials: {t1_total}, Cross-validation Prediction Accuracy: {acc1*100:.3f}%\n"
+    f"B) N trials {t2_total},  Cross-validation Prediction Accuracy {acc2*100:.3f}%"
 )
 
 plt.legend(title=legend_info)
@@ -329,8 +328,6 @@ t2_count = 0
 
 t1_total = 0
 t2_total = 0
-
-
 
 for session_id in df_relevant["session_id"].unique():
 
@@ -379,7 +376,6 @@ observed_actual = [
     [good_actual_t1_count, bad_actual_t1_count],
     [good_actual_t2_count, bad_actual_t2_count]
 ]
-
 
 chi2_pred, p_pred, dof_pred, expected_pred = chi2_contingency(observed_pred)
 chi2_actual, p_actual, dof_actual, expected_actual = chi2_contingency(observed_actual)

@@ -27,6 +27,7 @@ relevant_sensors = [
     # "o1",
     "o2",
 ]
+
 relevant_bands = ["theta", "alpha", "beta_l", "beta_h"]
 
 def is_relevant_column(col):
@@ -40,10 +41,10 @@ keep_cols = []
 keep_cols = [col for col in df.columns if is_relevant_column(col)]
 # keep_cols += ["start_time", "session_id"]
 keep_cols.append(target_col)
-# keep_cols.append("test_version")
 # keep_cols.append("obj_rotation")
-# keep_cols.append("start_time")
-# keep_cols.append("session_id")
+keep_cols.append("test_version")
+keep_cols.append("start_time")
+keep_cols.append("session_id")
 
 df_relevant = df[keep_cols].dropna()
 # df_relevant["start_time"] = pd.to_datetime(df_relevant["start_time"])

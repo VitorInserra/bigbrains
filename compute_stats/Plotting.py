@@ -1,6 +1,7 @@
 import pandas as pd
 from scipy.signal import medfilt
 from scipy.stats import pearsonr
+from scipy.stats import spearmanr
 import itertools
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,94 +10,91 @@ import datetime
 
 def plot_performance(df: pd.DataFrame, file_path="03-30-2025", save_extension="many"):
     # Sort by start_stamp so that plotting is in chronological order
-    df = df.sort_values(by="start_stamp").reset_index(drop=True)
+    # df = df.sort_values(by="start_stamp").reset_index(drop=True)
 
-    # Create an integer array [0, 1, 2, ..., n-1] to serve as our x-values
-    x_vals = np.arange(len(df))
-
-    df["timer_diff"] = df["initial_timer"] - df["end_timer"]
-    df = compute_performance(df)
-    # df["performance"] = df["rot_ratio"]*df["obj_size"] + 0.8*(df["initial_timer"] - df["end_timer"])
-
-    plt.figure()
-    plt.scatter(x_vals, df["performance"], marker="o")
-    plt.title("Performance")
-    plt.xlabel("Start Timestamp")
-    plt.ylabel("Performance")
-    plt.xticks(rotation=45)  # rotate x-axis labels if needed
-    plt.tight_layout()  # fix layout issues
-    plt.savefig(f"stats_imgs/{file_path}/perf_{save_extension}.png")
-    plt.show()
-
-    plt.figure()
-    plt.scatter(x_vals, df["timer_diff"], marker="o")
-    plt.title("Timer difference")
-    plt.xlabel("Start Timestamp")
-    plt.ylabel("Timer Difference")
-    plt.xticks(rotation=45)  # rotate x-axis labels if needed
-    plt.tight_layout()  # fix layout issues
-    plt.savefig(f"stats_imgs/{file_path}/timer_diff_{save_extension}.png")
-
-    df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
-
-    plt.figure()
-    plt.scatter(x_vals, df["expected_rotation"], marker="o")
-    plt.title("Rotation")
-    plt.xlabel("Start Timestamp")
-    plt.ylabel("Expected Rotation")
-    plt.xticks(rotation=45)  # rotate x-axis labels if needed
-    plt.tight_layout()  # fix layout issues
-    plt.savefig(f"stats_imgs/{file_path}/rotation_diff_{save_extension}.png")
-
-    plt.figure()
-    plt.scatter(x_vals, df["obj_size"], marker="o")
-    plt.title("Object_size")
-    plt.xlabel("Start Timestamp")
-    plt.ylabel("Number of blocks")
-    plt.xticks(rotation=45)  # rotate x-axis labels if needed
-    plt.tight_layout()  # fix layout issues
-    plt.savefig(f"stats_imgs/{file_path}/obj_size_{save_extension}.png")
-
-    df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
-
-    # 20% tolerance on rotation gives us 252/360
-    # df["rot_diff"] = np.where(df["rot_diff"] < 0, 0, df["rot_diff"])
-    # avg = np.mean(df["rot_diff"])
-    # df["rot_diff"] = np.where(df["rot_diff"] == 0, avg, df["rot_diff"])
-
+    # # Create an integer array [0, 1, 2, ..., n-1] to serve as our x-values
+    # x_vals = np.arange(len(df))
 
     # df["timer_diff"] = df["initial_timer"] - df["end_timer"]
+    # df = compute_performance(df)
+    # # df["performance"] = df["rot_ratio"]*df["obj_size"] + 0.8*(df["initial_timer"] - df["end_timer"])
+
+    # plt.figure()
+    # plt.scatter(x_vals, df["performance"], marker="o")
+    # plt.title("Performance")
+    # plt.xlabel("Start Timestamp")
+    # plt.ylabel("Performance")
+    # plt.xticks(rotation=45)  # rotate x-axis labels if needed
+    # plt.tight_layout()  # fix layout issues
+    # plt.savefig(f"stats_imgs/{file_path}/perf_{save_extension}.png")
+    # plt.show()
+
+    # plt.figure()
+    # plt.scatter(x_vals, df["timer_diff"], marker="o")
+    # plt.title("Timer difference")
+    # plt.xlabel("Start Timestamp")
+    # plt.ylabel("Timer Difference")
+    # plt.xticks(rotation=45)  # rotate x-axis labels if needed
+    # plt.tight_layout()  # fix layout issues
+    # plt.savefig(f"stats_imgs/{file_path}/timer_diff_{save_extension}.png")
+
+    # df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
+
+    # plt.figure()
+    # plt.scatter(x_vals, df["expected_rotation"], marker="o")
+    # plt.title("Rotation")
+    # plt.xlabel("Start Timestamp")
+    # plt.ylabel("Expected Rotation")
+    # plt.xticks(rotation=45)  # rotate x-axis labels if needed
+    # plt.tight_layout()  # fix layout issues
+    # plt.savefig(f"stats_imgs/{file_path}/rotation_diff_{save_extension}.png")
+
+    # plt.figure()
+    # plt.scatter(x_vals, df["obj_size"], marker="o")
+    # plt.title("Object_size")
+    # plt.xlabel("Start Timestamp")
+    # plt.ylabel("Number of blocks")
+    # plt.xticks(rotation=45)  # rotate x-axis labels if needed
+    # plt.tight_layout()  # fix layout issues
+    # plt.savefig(f"stats_imgs/{file_path}/obj_size_{save_extension}.png")
+
+    # df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
+
+    # 20% tolerance on rotation gives us 252/360f["rot_diff"])
+    # df["rot_diff"] = np.where(df["rot_diff"] < 0, 0, df["rot_diff"])
+    # avg = np.mean(df["rot_diff"])
+    # df["rot_diff"] = np.where(df["rot_diff"] == 0, avg, d
+
+
+    df["timer_diff"] = df["initial_timer"] - df["end_timer"]
+    df["reg"] = (df["expected_rotation"]/max(df["expected_rotation"]) + df["obj_size"]/max(df["obj_size"]))
     # df["rot_diff"] = df["obj_rotation"] - df["expected_rotation"]
     # # df["obj_size"] is already present
 
-    # cols_of_interest = ["timer_diff", "rot_diff"]
-    # corr_matrix = df[cols_of_interest].corr()
+    cols_of_interest = ["timer_diff", "reg"]
+    corr_matrix = df[cols_of_interest].corr()
 
-    # # Pairwise Pearson correlation with significance testing
-    # for col1, col2 in itertools.combinations(cols_of_interest, 2):
-    #     # Drop any rows with NaNs in these two columns to avoid errors
-    #     valid_data = df[[col1, col2]].dropna()
-    #     if len(valid_data) < 2:
-    #         # Not enough data for correlation
-    #         print(f"Not enough data to correlate {col1} and {col2}.")
-    #         continue
+    # Pairwise Pearson correlation with significance testing
+    for col1, col2 in itertools.combinations(cols_of_interest, 2):
+        # Drop any rows with NaNs in these two columns to avoid errors
+        valid_data = df[[col1, col2]].dropna()
 
-    # # Compute correlation coefficient and p-value
-    # r_value, p_value = pearsonr(valid_data[col1], valid_data[col2])
+    # Compute correlation coefficient and p-value
+    r_value, p_value = spearmanr(valid_data[col1], valid_data[col2])
 
-    # print(f"Correlation between {col1} and {col2}:")
-    # print(f"  r = {r_value:.4f}, p = {p_value:.4g}\n")
-    # plt.figure()
-    # plt.imshow(corr_matrix, cmap="viridis", interpolation="nearest")
-    # plt.title("Correlation Matrix")
+    print(f"Correlation between {col1} and {col2}:")
+    print(f"  r = {r_value:.4f}, p = {p_value:.4g}\n")
+    plt.figure()
+    plt.imshow(corr_matrix, cmap="viridis", interpolation="nearest")
+    plt.title("Correlation Matrix")
 
-    # # Show column labels
-    # plt.xticks(range(len(cols_of_interest)), cols_of_interest, rotation=45)
-    # plt.yticks(range(len(cols_of_interest)), cols_of_interest)
+    # Show column labels
+    plt.xticks(range(len(cols_of_interest)), cols_of_interest, rotation=45)
+    plt.yticks(range(len(cols_of_interest)), cols_of_interest)
 
-    # plt.colorbar()
-    # plt.tight_layout()
-    # plt.savefig(f"stats_imgs/{file_path}/correlation_matrix_{save_extension}.png")
+    plt.colorbar()
+    plt.tight_layout()
+    plt.savefig(f"stats_imgs/{file_path}/correlation_matrix_{save_extension}.png")
 
 
 def compute_performance(df: pd.DataFrame):
@@ -383,45 +381,45 @@ def plot_theta_beta_ratios(
     plt.show()
 
 
+
 def plot_all(filtered_vr, filtered_eeg):
+    plot_performance(filtered_vr)
 
-        plot_performance(filtered_vr)
+    sensors_to_plot = [
+        "af3_alpha",
+        "f7_alpha",
+        "t7_alpha",
+        "p7_alpha",
+        "o1_alpha",
+        "fc6_alpha",
+    ]
 
-        sensors_to_plot = [
-            "af3_alpha",
-            "f7_alpha",
-            "t7_alpha",
-            "p7_alpha",
-            "o1_alpha",
-            "fc6_alpha",
-        ]
+    plot_multiple_sensors_avg(
+        filtered_eeg,
+        sensors_to_plot,
+        chunk_size=0.3,
+        # impossible_threshold=20.0,
+        z_thresh=1,
+        max_iters=5,
+    )
 
-        plot_multiple_sensors_avg(
-            filtered_eeg,
-            sensors_to_plot,
-            chunk_size=0.3,
-            # impossible_threshold=20.0,
-            z_thresh=1,
-            max_iters=5,
-        )
-
-        sensor_pairs = [
-            ["af3_theta", "af3_beta_l", "af3_beta_h"],
-            ["f7_theta", "f7_beta_l", "f7_beta_h"],
-            ["t7_theta", "t7_beta_l", "t7_beta_h"],
-            ["p7_theta", "p7_beta_l", "p7_beta_h"],
-            ["o1_theta", "o1_beta_l", "o1_beta_h"],
-            ["fc6_theta", "fc6_beta_l", "fc6_beta_h"],
-        ]
-        plot_theta_beta_ratios(
-            eeg_df=filtered_eeg,
-            sensor_pairs=sensor_pairs,
-            chunk_size=0.3,
-            impossible_threshold=20.0,
-            z_thresh=1,
-            max_iters=5,
-            combine_betas=True
-        )
+    sensor_pairs = [
+        ["af3_theta", "af3_beta_l", "af3_beta_h"],
+        ["f7_theta", "f7_beta_l", "f7_beta_h"],
+        ["t7_theta", "t7_beta_l", "t7_beta_h"],
+        ["p7_theta", "p7_beta_l", "p7_beta_h"],
+        ["o1_theta", "o1_beta_l", "o1_beta_h"],
+        ["fc6_theta", "fc6_beta_l", "fc6_beta_h"],
+    ]
+    plot_theta_beta_ratios(
+        eeg_df=filtered_eeg,
+        sensor_pairs=sensor_pairs,
+        chunk_size=0.3,
+        impossible_threshold=20.0,
+        z_thresh=1,
+        max_iters=5,
+        combine_betas=True
+    )
 
 
 if __name__ == "__main__":
