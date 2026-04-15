@@ -16,7 +16,7 @@ module load python
 
 cd ~/bigbrains/SMC_pub
 
-source .venv/bin/activate
+source ../.venv/bin/activate
 
 mkdir -p outputs
 
