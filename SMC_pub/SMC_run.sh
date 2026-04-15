@@ -16,7 +16,7 @@ module load python
 
 cd ~/bigbrains
 source .venv/bin/activate
-python -m pip install --no-cache-dir -r ../requirements.txt
+python -m pip install --no-cache-dir -r requirements.txt
 
 
 
