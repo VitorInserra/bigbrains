@@ -14,9 +14,11 @@ set -euo pipefail
 module purge
 module load python
 
-cd ~/bigbrains/SMC_pub
+cd ~/bigbrains
+source .venv/bin/activate
+python -m pip install --no-cache-dir -r ../requirements.txt
 
-source ../.venv/bin/activate
+
 
 mkdir -p outputs
 
@@ -29,4 +31,4 @@ python --version
 which python
 nvidia-smi || true
 
-python BiLSTM_regressor.py
+python SMC_pub/BiLSTM_regressor.py
