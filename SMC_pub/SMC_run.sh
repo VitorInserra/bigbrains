@@ -14,7 +14,7 @@ set -euo pipefail
 module purge
 module load python
 
-cd ~/SMC_pub
+cd ~/bigbrains/SMC_pub
 
 source .venv/bin/activate
 
