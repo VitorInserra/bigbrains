@@ -31,4 +31,4 @@ python --version
 which python
 nvidia-smi || true
 
-python SMC_pub/BiLSTM_regressor.py
+python BiLSTM_regressor.py
