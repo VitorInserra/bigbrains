@@ -1,12 +1,12 @@
-Host: g181010.ll.unc.edu
-Date: Mon Apr 20 04:52:28 PM EDT 2026
-Job ID: 44693516
+Host: g181103.ll.unc.edu
+Date: Mon Apr 20 05:24:02 PM EDT 2026
+Job ID: 44703346
 Array Task ID: 3
 Working dir: /nas/longleaf/home/inserra/bigbrains/SMC_pub
 ==== CUDA CHECK ====
 CUDA_TOOLKIT_ROOT=/nas/longleaf/rhel9/apps/cuda/12.9
 /nas/longleaf/rhel9/apps/cuda/12.9/bin/nvcc
-Mon Apr 20 16:52:28 2026       
+Mon Apr 20 17:24:02 2026       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 590.48.01              Driver Version: 590.48.01      CUDA Version: 13.1     |
 +-----------------------------------------+------------------------+----------------------+
@@ -14,8 +14,8 @@ Mon Apr 20 16:52:28 2026
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
-|   0  NVIDIA L40S                    On  |   00000000:1B:00.0 Off |                    0 |
-| N/A   27C    P8             32W /  350W |       0MiB /  46068MiB |      0%      Default |
+|   0  NVIDIA L40S                    On  |   00000000:19:00.0 Off |                    0 |
+| N/A   39C    P8             60W /  350W |       0MiB /  46068MiB |      0%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -61,29 +61,59 @@ Outer test sessions : ['359314b3-5a7c-4dd0-b813-6d8344c62062'
  '84a32360-b241-415e-9626-55dddd442162']
 Outer train trials  : 636
 Outer test trials   : 204
-Number of hyperparameter configs: 2
+Number of hyperparameter configs: 8
 
-Testing hyperparameters 1/2: {'lstm_units': 256, 'dense_units': 32, 'dropout': 0.3, 'learning_rate': 0.0001, 'batch_size': 64}
-  Inner fold 1/3 | max_len=30 | best_val_loss=3.037447 | best_epoch=163
-  Inner fold 2/3 | max_len=30 | best_val_loss=3.599612 | best_epoch=77
-  Inner fold 3/3 | max_len=30 | best_val_loss=2.481599 | best_epoch=103
+Testing hyperparameters 1/8: {'lstm_units': 512, 'dense_units': 128, 'dropout': 0.2, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=30 | best_val_loss=3.207138 | best_epoch=298
+  Inner fold 2/3 | max_len=30 | best_val_loss=2.824165 | best_epoch=257
+  Inner fold 3/3 | max_len=30 | best_val_loss=2.506629 | best_epoch=80
 
-Testing hyperparameters 2/2: {'lstm_units': 512, 'dense_units': 32, 'dropout': 0.3, 'learning_rate': 0.0001, 'batch_size': 64}
-  Inner fold 1/3 | max_len=30 | best_val_loss=3.107119 | best_epoch=162
-  Inner fold 2/3 | max_len=30 | best_val_loss=2.840442 | best_epoch=104
-  Inner fold 3/3 | max_len=30 | best_val_loss=2.166336 | best_epoch=40
+Testing hyperparameters 2/8: {'lstm_units': 512, 'dense_units': 128, 'dropout': 0.4, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=30 | best_val_loss=3.318579 | best_epoch=134
+  Inner fold 2/3 | max_len=30 | best_val_loss=2.712891 | best_epoch=114
+  Inner fold 3/3 | max_len=30 | best_val_loss=2.204864 | best_epoch=120
+
+Testing hyperparameters 3/8: {'lstm_units': 512, 'dense_units': 256, 'dropout': 0.2, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=30 | best_val_loss=3.133135 | best_epoch=226
+  Inner fold 2/3 | max_len=30 | best_val_loss=3.050045 | best_epoch=198
+  Inner fold 3/3 | max_len=30 | best_val_loss=2.275015 | best_epoch=265
+
+Testing hyperparameters 4/8: {'lstm_units': 512, 'dense_units': 256, 'dropout': 0.4, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=30 | best_val_loss=3.041950 | best_epoch=266
+  Inner fold 2/3 | max_len=30 | best_val_loss=2.724477 | best_epoch=201
+  Inner fold 3/3 | max_len=30 | best_val_loss=2.241978 | best_epoch=140
+
+Testing hyperparameters 5/8: {'lstm_units': 1024, 'dense_units': 128, 'dropout': 0.2, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=30 | best_val_loss=3.946303 | best_epoch=51
+  Inner fold 2/3 | max_len=30 | best_val_loss=2.783189 | best_epoch=158
+  Inner fold 3/3 | max_len=30 | best_val_loss=2.072638 | best_epoch=35
+
+Testing hyperparameters 6/8: {'lstm_units': 1024, 'dense_units': 128, 'dropout': 0.4, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=30 | best_val_loss=3.645361 | best_epoch=126
+  Inner fold 2/3 | max_len=30 | best_val_loss=2.471562 | best_epoch=205
+  Inner fold 3/3 | max_len=30 | best_val_loss=1.931530 | best_epoch=50
+
+Testing hyperparameters 7/8: {'lstm_units': 1024, 'dense_units': 256, 'dropout': 0.2, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=30 | best_val_loss=3.081765 | best_epoch=266
+  Inner fold 2/3 | max_len=30 | best_val_loss=2.711513 | best_epoch=199
+  Inner fold 3/3 | max_len=30 | best_val_loss=2.040763 | best_epoch=76
+
+Testing hyperparameters 8/8: {'lstm_units': 1024, 'dense_units': 256, 'dropout': 0.4, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=30 | best_val_loss=3.408041 | best_epoch=54
+  Inner fold 2/3 | max_len=30 | best_val_loss=2.358164 | best_epoch=199
+  Inner fold 3/3 | max_len=30 | best_val_loss=1.888477 | best_epoch=113
 
 Best hyperparameters from inner CV:
-{'lstm_units': 512, 'dense_units': 32, 'dropout': 0.3, 'learning_rate': 0.0001, 'batch_size': 64}
-Mean inner validation loss: 2.704632
-Final epochs: 104
+{'lstm_units': 1024, 'dense_units': 256, 'dropout': 0.4, 'learning_rate': 0.0001, 'batch_size': 128}
+Mean inner validation loss: 2.551561
+Final epochs: 113
 Outer training max_len: 30
 
 Outer fold test results:
-  test_mse: 5.047269
-  test_rmse: 2.246613
-  test_mae: 1.687669
-  test_r2: 0.490591
+  test_mse: 4.362303
+  test_rmse: 2.088613
+  test_mae: 1.533883
+  test_r2: 0.559723
 
 Saved files:
   - outputs/smc_nested_cv_a100/outer_fold_3/inner_cv_results.csv

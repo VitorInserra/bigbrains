@@ -1,2 +1,2 @@
 outer_fold,n_outer_train_trials,n_outer_test_trials,n_outer_train_sessions,n_outer_test_sessions,best_lstm_units,best_dense_units,best_dropout,best_learning_rate,best_batch_size,final_epochs,outer_train_max_len,test_mse,test_rmse,test_mae,test_r2
-2,626,214,12,4,512,32,0.3,0.0001,64,75,30,4.401986598968506,2.0980911798509867,1.6904553174972534,0.33666443824768066
+2,626,214,12,4,1024,256,0.4,0.0001,128,56,30,3.170553684234619,1.780604864711601,1.3231163024902344,0.5222290754318237

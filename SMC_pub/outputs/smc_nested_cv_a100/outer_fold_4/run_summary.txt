@@ -27,29 +27,59 @@ Outer test sessions : ['396f53e6-e4aa-4d49-861d-5cab0e380592'
  'f43c63f7-4814-4cda-8fb8-a6a19cfbc342']
 Outer train trials  : 622
 Outer test trials   : 218
-Number of hyperparameter configs: 2
+Number of hyperparameter configs: 8
 
-Testing hyperparameters 1/2: {'lstm_units': 256, 'dense_units': 32, 'dropout': 0.3, 'learning_rate': 0.0001, 'batch_size': 64}
-  Inner fold 1/3 | max_len=29 | best_val_loss=3.107762 | best_epoch=159
-  Inner fold 2/3 | max_len=30 | best_val_loss=4.466271 | best_epoch=96
-  Inner fold 3/3 | max_len=30 | best_val_loss=4.693627 | best_epoch=151
+Testing hyperparameters 1/8: {'lstm_units': 512, 'dense_units': 128, 'dropout': 0.2, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=29 | best_val_loss=3.663617 | best_epoch=148
+  Inner fold 2/3 | max_len=30 | best_val_loss=3.664470 | best_epoch=117
+  Inner fold 3/3 | max_len=30 | best_val_loss=4.486085 | best_epoch=141
 
-Testing hyperparameters 2/2: {'lstm_units': 512, 'dense_units': 32, 'dropout': 0.3, 'learning_rate': 0.0001, 'batch_size': 64}
-  Inner fold 1/3 | max_len=29 | best_val_loss=3.467642 | best_epoch=124
-  Inner fold 2/3 | max_len=30 | best_val_loss=3.913399 | best_epoch=96
-  Inner fold 3/3 | max_len=30 | best_val_loss=4.772159 | best_epoch=72
+Testing hyperparameters 2/8: {'lstm_units': 512, 'dense_units': 128, 'dropout': 0.4, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=29 | best_val_loss=3.171004 | best_epoch=297
+  Inner fold 2/3 | max_len=30 | best_val_loss=3.412418 | best_epoch=118
+  Inner fold 3/3 | max_len=30 | best_val_loss=4.081339 | best_epoch=169
+
+Testing hyperparameters 3/8: {'lstm_units': 512, 'dense_units': 256, 'dropout': 0.2, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=29 | best_val_loss=3.411003 | best_epoch=206
+  Inner fold 2/3 | max_len=30 | best_val_loss=3.812612 | best_epoch=73
+  Inner fold 3/3 | max_len=30 | best_val_loss=4.280488 | best_epoch=96
+
+Testing hyperparameters 4/8: {'lstm_units': 512, 'dense_units': 256, 'dropout': 0.4, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=29 | best_val_loss=3.197009 | best_epoch=291
+  Inner fold 2/3 | max_len=30 | best_val_loss=3.612922 | best_epoch=111
+  Inner fold 3/3 | max_len=30 | best_val_loss=4.023212 | best_epoch=173
+
+Testing hyperparameters 5/8: {'lstm_units': 1024, 'dense_units': 128, 'dropout': 0.2, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=29 | best_val_loss=2.915305 | best_epoch=171
+  Inner fold 2/3 | max_len=30 | best_val_loss=3.650580 | best_epoch=117
+  Inner fold 3/3 | max_len=30 | best_val_loss=3.878317 | best_epoch=110
+
+Testing hyperparameters 6/8: {'lstm_units': 1024, 'dense_units': 128, 'dropout': 0.4, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=29 | best_val_loss=2.764357 | best_epoch=234
+  Inner fold 2/3 | max_len=30 | best_val_loss=3.501190 | best_epoch=117
+  Inner fold 3/3 | max_len=30 | best_val_loss=3.667735 | best_epoch=71
+
+Testing hyperparameters 7/8: {'lstm_units': 1024, 'dense_units': 256, 'dropout': 0.2, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=29 | best_val_loss=2.973946 | best_epoch=266
+  Inner fold 2/3 | max_len=30 | best_val_loss=3.627787 | best_epoch=98
+  Inner fold 3/3 | max_len=30 | best_val_loss=3.610414 | best_epoch=121
+
+Testing hyperparameters 8/8: {'lstm_units': 1024, 'dense_units': 256, 'dropout': 0.4, 'learning_rate': 0.0001, 'batch_size': 128}
+  Inner fold 1/3 | max_len=29 | best_val_loss=2.695358 | best_epoch=249
+  Inner fold 2/3 | max_len=30 | best_val_loss=3.486320 | best_epoch=93
+  Inner fold 3/3 | max_len=30 | best_val_loss=3.746691 | best_epoch=76
 
 Best hyperparameters from inner CV:
-{'lstm_units': 512, 'dense_units': 32, 'dropout': 0.3, 'learning_rate': 0.0001, 'batch_size': 64}
-Mean inner validation loss: 4.051066
-Final epochs: 96
+{'lstm_units': 1024, 'dense_units': 256, 'dropout': 0.4, 'learning_rate': 0.0001, 'batch_size': 128}
+Mean inner validation loss: 3.309456
+Final epochs: 93
 Outer training max_len: 30
 
 Outer fold test results:
-  test_mse: 1.903537
-  test_rmse: 1.379687
-  test_mae: 0.991289
-  test_r2: 0.717090
+  test_mse: 2.051453
+  test_rmse: 1.432289
+  test_mae: 1.051094
+  test_r2: 0.695106
 
 Saved files:
   - outputs/smc_nested_cv_a100/outer_fold_4/inner_cv_results.csv
