@@ -2,7 +2,7 @@
 #SBATCH --job-name=smc_bilstm_reg
 #SBATCH --output=smc_bilstm_reg_%A_%a.out
 #SBATCH --error=smc_bilstm_reg_%A_%a.err
-#SBATCH --partition=a100-gpu
+#SBATCH --partition=l40-gpu
 #SBATCH --qos=gpu_access
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
