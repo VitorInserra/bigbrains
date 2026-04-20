@@ -1,37 +1,3 @@
-Host: g181103.ll.unc.edu
-Date: Mon Apr 20 04:54:39 PM EDT 2026
-Job ID: 44693373
-Array Task ID: 4
-Working dir: /nas/longleaf/home/inserra/bigbrains/SMC_pub
-==== CUDA CHECK ====
-CUDA_TOOLKIT_ROOT=/nas/longleaf/rhel9/apps/cuda/12.9
-/nas/longleaf/rhel9/apps/cuda/12.9/bin/nvcc
-Mon Apr 20 16:54:39 2026       
-+-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 590.48.01              Driver Version: 590.48.01      CUDA Version: 13.1     |
-+-----------------------------------------+------------------------+----------------------+
-| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
-| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
-|                                         |                        |               MIG M. |
-|=========================================+========================+======================|
-|   0  NVIDIA L40S                    On  |   00000000:19:00.0 Off |                    0 |
-| N/A   31C    P8             32W /  350W |       0MiB /  46068MiB |      0%      Default |
-|                                         |                        |                  N/A |
-+-----------------------------------------+------------------------+----------------------+
-
-+-----------------------------------------------------------------------------------------+
-| Processes:                                                                              |
-|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
-|        ID   ID                                                               Usage      |
-|=========================================================================================|
-|  No running processes found                                                             |
-+-----------------------------------------------------------------------------------------+
-total 480
--rw-r--r-- 1 jennyw its_employee_psx 486168 Jun 19  2025 libdevice.10.bc
-TF version: 2.20.0
-Built with CUDA: True
-GPUs: [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
-XLA test passed: [-1.  0.  1.]
 
 ======================================================================
 OUTER FOLD 4/4
@@ -91,6 +57,3 @@ Saved files:
   - outputs/smc_nested_cv_a100/outer_fold_4/outer_fold_predictions.csv
   - outputs/smc_nested_cv_a100/outer_fold_4/predicted_vs_true_sorted.png
   - outputs/smc_nested_cv_a100/outer_fold_4/predicted_vs_true_scatter.png
-
-Completed single outer fold run.
-Run output directory: /nas/longleaf/home/inserra/bigbrains/SMC_pub/outputs/smc_nested_cv_a100
