@@ -74,7 +74,7 @@ INNER_N_SPLITS = 3
 
 # Training
 MAX_EPOCHS = 300
-EARLY_STOPPING_PATIENCE = 30
+EARLY_STOPPING_PATIENCE = 50
 SEED = 42
 VERBOSE_FIT = 0
 
@@ -88,11 +88,11 @@ TARGET_OUTLIER_TRIM_FRACTION = 0.01  # removes 1% total: 0.5% low + 0.5% high
 # Optimized hyperparameter grid
 # 2 x 1 x 2 x 2 x 1 = 8 configs total
 HYPERPARAM_GRID = {
-    "lstm_units": [256, 512],
-    "dense_units": [32],
-    "dropout": [0.3],
+    "lstm_units": [512, 1024],
+    "dense_units": [128, 256],
+    "dropout": [0.2, 0.4],
     "learning_rate": [1e-4],
-    "batch_size": [64],
+    "batch_size": [128],
 }
 # HYPERPARAM_GRID = {
 #     "lstm_units": [128],
