@@ -1,0 +1,59 @@
+
+======================================================================
+OUTER FOLD 1/4
+Output directory: /nas/longleaf/home/inserra/bigbrains/SMC_pub/outputs/smc_nested_cv_a100/outer_fold_1
+Total trials after trimming: 840
+Total sessions after trimming: 16
+Feature dimension: 210
+Target column: performance
+Interpretation: LOWER target values = BETTER task performance
+Removed target outliers: 10
+Target keep range: [1.544197, 17.875950]
+Outer train sessions: ['2a298ece-1693-424d-9d70-7988e3c23aa6'
+ '359314b3-5a7c-4dd0-b813-6d8344c62062'
+ '396f53e6-e4aa-4d49-861d-5cab0e380592'
+ '3e4a23a8-c0e7-4ce7-ae53-eeaf9f4c0fd5'
+ '52c3627d-635c-44b0-8eca-f1a6c372019d'
+ '74500da8-b16d-48c9-a573-2b507d395bbb'
+ '84a32360-b241-415e-9626-55dddd442162'
+ '957d4d90-5e33-448f-8662-9a27f6f2b66c'
+ '99ea5a4e-5011-47ee-823c-56fdacec63f5'
+ 'c488b456-7651-4424-8cc9-8f81ed92e0e2'
+ 'c9a0db8e-8359-4a36-8e49-5080627736e3'
+ 'dfb19734-6102-44df-8e11-9947e134eeb2'
+ 'f43c63f7-4814-4cda-8fb8-a6a19cfbc342']
+Outer test sessions : ['23a477dd-d8b8-42c6-adbe-47f39ed77952'
+ 'ad87efc0-28f6-4acc-8ec2-a5f449e974bc'
+ 'f59e9a00-0a45-4497-8048-818cd5f48267']
+Outer train trials  : 636
+Outer test trials   : 204
+Number of hyperparameter configs: 2
+
+Testing hyperparameters 1/2: {'lstm_units': 256, 'dense_units': 32, 'dropout': 0.3, 'learning_rate': 0.0001, 'batch_size': 64}
+  Inner fold 1/3 | max_len=30 | best_val_loss=3.695081 | best_epoch=170
+  Inner fold 2/3 | max_len=30 | best_val_loss=6.581205 | best_epoch=57
+  Inner fold 3/3 | max_len=29 | best_val_loss=2.520126 | best_epoch=104
+
+Testing hyperparameters 2/2: {'lstm_units': 512, 'dense_units': 32, 'dropout': 0.3, 'learning_rate': 0.0001, 'batch_size': 64}
+  Inner fold 1/3 | max_len=30 | best_val_loss=3.314000 | best_epoch=67
+  Inner fold 2/3 | max_len=30 | best_val_loss=5.816071 | best_epoch=56
+  Inner fold 3/3 | max_len=29 | best_val_loss=2.191406 | best_epoch=115
+
+Best hyperparameters from inner CV:
+{'lstm_units': 512, 'dense_units': 32, 'dropout': 0.3, 'learning_rate': 0.0001, 'batch_size': 64}
+Mean inner validation loss: 3.773826
+Final epochs: 67
+Outer training max_len: 30
+
+Outer fold test results:
+  test_mse: 2.959763
+  test_rmse: 1.720396
+  test_mae: 1.214302
+  test_r2: 0.551171
+
+Saved files:
+  - outputs/smc_nested_cv_a100/outer_fold_1/inner_cv_results.csv
+  - outputs/smc_nested_cv_a100/outer_fold_1/outer_fold_metrics.csv
+  - outputs/smc_nested_cv_a100/outer_fold_1/outer_fold_predictions.csv
+  - outputs/smc_nested_cv_a100/outer_fold_1/predicted_vs_true_sorted.png
+  - outputs/smc_nested_cv_a100/outer_fold_1/predicted_vs_true_scatter.png
