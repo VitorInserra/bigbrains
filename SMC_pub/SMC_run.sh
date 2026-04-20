@@ -1,13 +1,14 @@
 #!/bin/bash
 #SBATCH --job-name=smc_bilstm_reg
-#SBATCH --output=smc_bilstm_reg_%j.out
-#SBATCH --error=smc_bilstm_reg_%j.err
-#SBATCH --partition=l40-gpu
+#SBATCH --output=smc_bilstm_reg_%A_%a.out
+#SBATCH --error=smc_bilstm_reg_%A_%a.err
+#SBATCH --partition=a100-gpu
 #SBATCH --qos=gpu_access
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 #SBATCH --time=08:00:00
+#SBATCH --array=1-4
 
 set -euo pipefail
 
@@ -19,19 +20,17 @@ module load cudnn/9.11.0
 cd ~/bigbrains
 source venv/bin/activate
 
-python -m pip install --no-cache-dir -r requirements.txt
-
 cd SMC_pub
 mkdir -p outputs
 
 echo "Host: $(hostname)"
 echo "Date: $(date)"
 echo "Job ID: ${SLURM_JOB_ID}"
+echo "Array Task ID: ${SLURM_ARRAY_TASK_ID}"
 echo "Working dir: $(pwd)"
 
 export PYTHONUNBUFFERED=1
 
-# Resolve CUDA toolkit root so TensorFlow/XLA can find nvvm/libdevice
 CUDA_TOOLKIT_ROOT=""
 
 if [ -n "${CUDA_HOME:-}" ] && [ -d "${CUDA_HOME}/nvvm/libdevice" ]; then
@@ -42,7 +41,6 @@ elif command -v nvcc >/dev/null 2>&1; then
     CUDA_TOOLKIT_ROOT="$(dirname "$(dirname "$(readlink -f "$(command -v nvcc)")")")"
 fi
 
-# Fallback search in case the module does not export CUDA_HOME/CUDA_DIR cleanly
 if [ -z "${CUDA_TOOLKIT_ROOT}" ] || [ ! -d "${CUDA_TOOLKIT_ROOT}/nvvm/libdevice" ]; then
     LIBDEVICE_PATH="$(find /nas/longleaf/apps -path '*/nvvm/libdevice/libdevice*.bc' 2>/dev/null | head -n 1 || true)"
     if [ -n "${LIBDEVICE_PATH}" ]; then
@@ -72,12 +70,10 @@ ls -l "${CUDA_TOOLKIT_ROOT}/nvvm/libdevice" || true
 
 python - <<'PY'
 import tensorflow as tf
-
 print("TF version:", tf.__version__)
 print("Built with CUDA:", tf.test.is_built_with_cuda())
-print("GPUs:", tf.config.list_physical_devices('GPU'))
+print("GPUs:", tf.config.list_physical_devices("GPU"))
 
-# Small preflight XLA test to catch libdevice problems early
 @tf.function(jit_compile=True)
 def test_fn(x):
     return tf.sign(x)
@@ -87,4 +83,6 @@ y = test_fn(x)
 print("XLA test passed:", y.numpy())
 PY
 
-python -u BiLSTM_regressor.py
+python -u BiLSTM_regressor.py \
+    --outer-fold "${SLURM_ARRAY_TASK_ID}" \
+    --run-name "smc_nested_cv_a100"

@@ -1,0 +1,2 @@
+lstm_units,dropout,dense_units,learning_rate,batch_size,mean_inner_val_loss,median_best_epoch
+256,0.4,32,0.0001,64,4.527154843012492,61
