@@ -1,0 +1,63 @@
+=== Trimming summary ===
+rows_before               = 840
+rows_after                = 830
+rows_removed              = 10
+lower_q                   = 0.005
+upper_q                   = 0.995
+keep_low                  = 1.881829
+keep_high                 = 16.144694
+
+=== Trial-level KS analysis: all aggregated out-of-fold predictions ===
+n_true                    = 830
+n_pred                    = 830
+true_mean                 = 5.545532
+pred_mean                 = 5.394895
+true_median               = 5.041944
+pred_median               = 4.865367
+MAE                       = 1.257039
+RMSE                      = 1.726903
+mean_signed_error         = -0.150637
+pearson_corr              = 0.772007
+KS statistic              = 0.036145
+KS p-value                = 0.650536
+Max ECDF gap at x         = 4.927018
+Signed gap (true - pred)  = -0.036145
+Interpretation: if this signed gap is positive, the true distribution accumulates faster than the predicted distribution at that threshold. If negative, the predicted distribution accumulates faster there.
+
+=== Session-level KS analysis: median per session ===
+n_sessions                = 16
+true_session_mean         = 5.276431
+pred_session_mean         = 4.954327
+true_session_median       = 5.238487
+pred_session_median       = 4.934461
+session_MAE               = 0.810344
+session_RMSE              = 0.986585
+session_KS statistic      = 0.250000
+session_KS p-value        = 0.716412
+session Max ECDF gap at x = 4.280136
+
+=== Per-fold trial-level KS summary ===
+outer_fold_1_trial_level: KS=0.044554, p=0.988458, MAE=1.172951, RMSE=1.598172, x*=6.373812
+outer_fold_2_trial_level: KS=0.200957, p=0.000416255, MAE=1.301558, RMSE=1.764326, x*=3.661714
+outer_fold_3_trial_level: KS=0.188119, p=0.00153357, MAE=1.534329, RMSE=2.091354, x*=4.446139
+outer_fold_4_trial_level: KS=0.050691, p=0.943977, MAE=1.034313, RMSE=1.399797, x*=4.752959
+
+=== Why this helps interpret KS ===
+KS compares the overall true and predicted distributions after sorting, so it does not preserve which prediction belonged to which trial. That means KS is good for checking distributional mismatch, but not pointwise prediction accuracy.
+To see how the KS divergence relates to the predictions themselves, also inspect prediction_error_by_true_quantile.csv. That file shows where the model is over- or under-predicting across the true-value range.
+
+Saved outputs:
+- combined_outer_fold_predictions_trimmed.csv
+- trim_summary.csv
+- trial_level_ecdf_profile.csv
+- trial_level_ecdf.png
+- trial_level_hist.png
+- trial_level_sorted_overlay.png
+- all_sessions_sorted_true_vs_pred.png        (if session_id exists)
+- all_sessions_sorted_true_vs_pred.csv        (session boundaries, if session_id exists)
+- session_level_true_vs_pred_summary.csv      (if session_id exists)
+- session_median_level_ecdf_profile.csv       (if session_id exists)
+- session_median_level_ecdf.png               (if session_id exists)
+- session_median_level_sorted_overlay.png     (if session_id exists)
+- per_fold_ks_summary.csv                     (if outer_fold exists)
+- prediction_error_by_true_quantile.csv

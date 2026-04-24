@@ -1,0 +1,2 @@
+rows_before,rows_after,rows_removed,lower_q,upper_q,keep_low,keep_high
+840,830,10,0.005,0.995,1.881829214096069,16.144694185256956

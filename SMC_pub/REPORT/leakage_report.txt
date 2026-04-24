@@ -1,0 +1,42 @@
+LEAKAGE CHECKS
+================================================================================
+OK: no trial_id appears in more than one outer fold.
+OK: no (session_id, trial_id) pair appears in more than one outer fold.
+OK: every session_id appears in the outer-test predictions of only one fold.
+OK: fold 1 has no train/test session overlap.
+OK: fold 2 has no train/test session overlap.
+OK: fold 3 has no train/test session overlap.
+OK: fold 4 has no train/test session overlap.
+OK: fold 1 predicted sessions exactly match run_summary outer-test sessions.
+OK: fold 2 predicted sessions exactly match run_summary outer-test sessions.
+OK: fold 3 predicted sessions exactly match run_summary outer-test sessions.
+OK: fold 4 predicted sessions exactly match run_summary outer-test sessions.
+
+PER-FOLD METRICS
+================================================================================
+ outer_fold  n_trials  n_sessions      mse     rmse      mae       r2
+          1       204           3 2.746462 1.657245 1.207514 0.583517
+          2       214           4 3.170554 1.780605 1.323116 0.522229
+          3       204           4 4.362303 2.088613 1.533884 0.559723
+          4       218           5 2.051453 1.432289 1.051094 0.695106
+
+MEAN OUTER-FOLD METRICS
+================================================================================
+mse     3.082693
+rmse    1.739688
+mae     1.278902
+r2      0.590144
+
+STD OUTER-FOLD METRICS
+================================================================================
+mse     0.969816
+rmse    0.273687
+mae     0.203276
+r2      0.074384
+
+POOLED OUT-OF-FOLD METRICS
+================================================================================
+mse     3.066551
+rmse    1.751157
+mae     1.275631
+r2      0.603610
