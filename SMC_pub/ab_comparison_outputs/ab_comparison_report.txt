@@ -1,0 +1,49 @@
+=== SANITY CHECKS ===
+Version mapping used throughout the script:
+  test_version == 1 -> Version A
+  test_version == 2 -> Version B
+
+Prediction rows kept: 830
+No outlier trimming is applied in this script.
+matched_vr_eeg_row_pairs is restricted to rows that appear in predictions.
+
+Truth consistency check between matched.performance and y_true:
+  max abs difference  = 0.000000469753
+  mean abs difference = 0.000000111326
+  allclose(atol=1e-6) = True
+
+Row counts by version on merged universe:
+  Version A rows (1): 432
+  Version B rows (2): 398
+
+Session counts by version on merged universe:
+  Version A sessions (1): 9
+  Version B sessions (2): 7
+
+=== TRUE SESSION-LEVEL SUMMARY (using matched.performance) ===
+Version A mean   = 5.574335
+Version A median = 5.670213
+Version A std    = 0.501869
+Version B mean   = 4.893412
+Version B median = 4.728447
+Version B std    = 0.846383
+Mann-Whitney U   = 51.000000
+Mann-Whitney p   = 0.0417832
+KS statistic     = 0.714286
+KS p-value       = 0.020979
+Median(A)-Median(B) = 0.941766
+Interpretation: lower is better.
+
+=== PREDICTED SESSION-LEVEL SUMMARY (using y_pred) ===
+Version A mean   = 4.984886
+Version A median = 4.947078
+Version A std    = 0.779907
+Version B mean   = 4.915037
+Version B median = 4.549803
+Version B std    = 1.230258
+Mann-Whitney U   = 37.000000
+Mann-Whitney p   = 0.606469
+KS statistic     = 0.349206
+KS p-value       = 0.572727
+Median(A)-Median(B) = 0.397274
+Interpretation: lower is better.

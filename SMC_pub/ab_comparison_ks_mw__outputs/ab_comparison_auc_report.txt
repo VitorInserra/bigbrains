@@ -1,0 +1,56 @@
+=== SANITY CHECKS ===
+Version mapping used throughout the script:
+  test_version == 1 -> Version A
+  test_version == 2 -> Version B
+
+Prediction rows kept: 830
+No outlier trimming is applied in this script.
+matched_vr_eeg_row_pairs is restricted to rows that appear in predictions.
+Session statistic for MW/KS: AUC over the within-session trajectory.
+Rows are ordered by vr_id (then eeg_id) within each session.
+AUC uses trapezoidal integration over trial index 0..n-1.
+
+Truth consistency check between matched.performance and y_true:
+  max abs difference  = 0.000000469753
+  mean abs difference = 0.000000111326
+  allclose(atol=1e-6) = True
+
+Row counts by version on merged universe:
+  Version A rows (1): 432
+  Version B rows (2): 398
+
+Session counts by version on merged universe:
+  Version A sessions (1): 9
+  Version B sessions (2): 7
+
+AUC caveat:
+  Raw AUC depends on both trajectory height and number of trials in the session.
+  Since session lengths differ, this is a trajectory-size summary, not a pure shape-only metric.
+
+=== TRUE SESSION-LEVEL SUMMARY (using matched.performance AUC) ===
+Version A mean   = 278.127736
+Version A median = 171.459893
+Version A std    = 245.665744
+Version B mean   = 280.649609
+Version B median = 255.669219
+Version B std    = 121.633574
+Mann-Whitney U   = 22.000000
+Mann-Whitney p   = 0.351049
+KS statistic     = 0.523810
+KS p-value       = 0.168706
+AUC(A)-AUC(B) median difference = -84.209325
+Interpretation: lower is better if lower performance values are better.
+
+=== PREDICTED SESSION-LEVEL SUMMARY (using y_pred AUC) ===
+Version A mean   = 256.819164
+Version A median = 149.864652
+Version A std    = 247.442107
+Version B mean   = 292.296227
+Version B median = 257.340163
+Version B std    = 183.790202
+Mann-Whitney U   = 23.000000
+Mann-Whitney p   = 0.407867
+KS statistic     = 0.444444
+KS p-value       = 0.323776
+AUC(A)-AUC(B) median difference = -107.475511
+Interpretation: lower is better if lower predicted performance values are better.
