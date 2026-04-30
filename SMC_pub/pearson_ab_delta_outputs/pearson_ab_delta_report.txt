@@ -1,0 +1,57 @@
+=== SANITY CHECKS ===
+Version mapping used throughout the script:
+  test_version == 1 -> Version A
+  test_version == 2 -> Version B
+
+Prediction rows kept: 830
+No outlier trimming is applied in this script.
+matched_vr_eeg_row_pairs is restricted to rows that appear in predictions.
+Normalized progress bins used: 10
+
+Truth consistency check between matched.performance and y_true:
+  max abs difference  = 0.000000469753
+  mean abs difference = 0.000000111326
+  allclose(atol=1e-6) = True
+
+Row counts by version on merged universe:
+  Version A rows (1): 432
+  Version B rows (2): 398
+
+=== DELTA-CURVE DEFINITION ===
+Within each session, rows are ordered by vr_id, then eeg_id, then trial_id.
+Each session is mapped onto normalized progress from 0 to 1 and binned.
+Within each (session, bin), values are averaged first.
+Then version-level curves are formed by averaging across sessions.
+Finally:
+  delta_true(bin) = VersionB_true(bin) - VersionA_true(bin)
+  delta_pred(bin) = VersionB_pred(bin) - VersionA_pred(bin)
+and Pearson(delta_true, delta_pred) is computed across bins.
+
+=== PEARSON RESULT ON A/B DELTA CURVES ===
+Aligned bins used = 10
+Pearson r         = 0.856402
+Pearson p-value   = 0.00155848
+
+=== TRUE DELTA CURVE ===
+bin  0 (center=0.05): A=6.701354, B=6.151245, delta=-0.550109
+bin  1 (center=0.15): A=6.942755, B=5.471614, delta=-1.471142
+bin  2 (center=0.25): A=4.678308, B=5.852642, delta=1.174334
+bin  3 (center=0.35): A=5.978014, B=4.995814, delta=-0.982200
+bin  4 (center=0.45): A=5.112451, B=5.407862, delta=0.295411
+bin  5 (center=0.55): A=5.486082, B=5.585571, delta=0.099489
+bin  6 (center=0.65): A=6.359892, B=5.115665, delta=-1.244227
+bin  7 (center=0.75): A=7.620111, B=4.908050, delta=-2.712061
+bin  8 (center=0.85): A=5.751853, B=4.302433, delta=-1.449420
+bin  9 (center=0.95): A=7.454144, B=5.750847, delta=-1.703297
+
+=== PREDICTED DELTA CURVE ===
+bin  0 (center=0.05): A=6.380872, B=5.090782, delta=-1.290090
+bin  1 (center=0.15): A=5.820902, B=5.024952, delta=-0.795950
+bin  2 (center=0.25): A=4.393425, B=5.684840, delta=1.291415
+bin  3 (center=0.35): A=4.753901, B=4.722155, delta=-0.031746
+bin  4 (center=0.45): A=4.452271, B=5.323324, delta=0.871052
+bin  5 (center=0.55): A=4.592931, B=5.667804, delta=1.074873
+bin  6 (center=0.65): A=5.792042, B=4.828359, delta=-0.963683
+bin  7 (center=0.75): A=6.829759, B=5.348726, delta=-1.481033
+bin  8 (center=0.85): A=5.595039, B=4.825539, delta=-0.769501
+bin  9 (center=0.95): A=6.568450, B=5.996447, delta=-0.572003

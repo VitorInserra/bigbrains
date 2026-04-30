@@ -1,0 +1,51 @@
+=== SANITY CHECKS ===
+Version mapping used throughout the script:
+  test_version == 1 -> Version A
+  test_version == 2 -> Version B
+
+Prediction rows kept: 830
+No outlier trimming is applied in this script.
+matched_vr_eeg_row_pairs is restricted to rows that appear in predictions.
+
+Truth consistency check between matched.performance and y_true:
+  max abs difference  = 0.000000469753
+  mean abs difference = 0.000000111326
+  allclose(atol=1e-6) = True
+
+Row counts by version on merged universe:
+  Version A rows (1): 432
+  Version B rows (2): 398
+
+Session counts by version on merged universe:
+  Version A sessions (1): 9
+  Version B sessions (2): 7
+
+Spearman trend interpretation:
+  If lower performance is better, negative rho means improvement over trial order.
+  If lower performance is better, positive rho means worsening over trial order.
+
+=== TRUE SESSION-LEVEL SPEARMAN TRENDS (using matched.performance) ===
+Version A mean rho   = 0.050943
+Version A median rho = 0.098300
+Version A std rho    = 0.248488
+Version B mean rho   = -0.128615
+Version B median rho = -0.076965
+Version B std rho    = 0.168166
+Mann-Whitney U       = 44.000000
+Mann-Whitney p       = 0.21049
+KS statistic         = 0.555556
+KS p-value           = 0.126748
+Median rho(A)-rho(B) = 0.175265
+
+=== PREDICTED SESSION-LEVEL SPEARMAN TRENDS (using y_pred) ===
+Version A mean rho   = 0.056506
+Version A median rho = 0.008356
+Version A std rho    = 0.208447
+Version B mean rho   = 0.085009
+Version B median rho = 0.044605
+Version B std rho    = 0.175075
+Mann-Whitney U       = 26.000000
+Mann-Whitney p       = 0.606469
+KS statistic         = 0.301587
+KS p-value           = 0.775
+Median rho(A)-rho(B) = -0.036250

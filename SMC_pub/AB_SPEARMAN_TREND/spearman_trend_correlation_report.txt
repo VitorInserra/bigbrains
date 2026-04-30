@@ -1,0 +1,55 @@
+=== SANITY CHECKS ===
+Version mapping used throughout the script:
+  test_version == 1 -> Version A
+  test_version == 2 -> Version B
+
+Prediction rows kept: 830
+No outlier trimming is applied in this script.
+matched_vr_eeg_row_pairs is restricted to rows that appear in predictions.
+
+Truth consistency check between matched.performance and y_true:
+  max abs difference  = 0.000000469753
+  mean abs difference = 0.000000111326
+  allclose(atol=1e-6) = True
+
+Row counts by version on merged universe:
+  Version A rows (1): 432
+  Version B rows (2): 398
+
+Session counts after computing per-session Spearman trend:
+  Overall sessions: 16
+  Version A sessions: 9
+  Version B sessions: 7
+
+Trend interpretation:
+  If lower performance is better, negative per-session trend rho means improvement over trial order.
+  The correlation test below asks whether TRUE and PREDICTED trend rho values rank sessions similarly.
+
+=== SPEARMAN CORRELATION OF TRUE VS PREDICTED SESSION TRENDS ===
+
+Overall
+  n_sessions           = 16
+  Spearman rho         = 0.652941
+  Spearman p-value     = 0.00610205
+  median true trend    = -0.064692
+  median predicted     = 0.038432
+  mean true trend      = -0.027614
+  mean predicted trend = 0.068976
+
+Version A
+  n_sessions           = 9
+  Spearman rho         = 0.883333
+  Spearman p-value     = 0.0015905
+  median true trend    = 0.098300
+  median predicted     = 0.008356
+  mean true trend      = 0.050943
+  mean predicted trend = 0.056506
+
+Version B
+  n_sessions           = 7
+  Spearman rho         = 0.464286
+  Spearman p-value     = 0.293934
+  median true trend    = -0.076965
+  median predicted     = 0.044605
+  mean true trend      = -0.128615
+  mean predicted trend = 0.085009
