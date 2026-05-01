@@ -1,0 +1,3 @@
+metric,session_id,session_start,session_end,n_trials,first_round,last_round,active_trial_time_seconds,mean_trial_time_seconds,min_trial_time_seconds,max_trial_time_seconds,wall_clock_elapsed_seconds,wall_clock_elapsed_minutes,active_trial_time_minutes,round_span,missing_rounds_estimate
+shortest_session_by_wall_clock,99ea5a4e-5011-47ee-823c-56fdacec63f5,2025-03-30 21:52:05.376,2025-03-30 21:53:42.006,19,95,113,96.50999999999999,5.079473684210526,2.755,11.078,96.63,1.6104999999999998,1.6084999999999998,19,0
+longest_session_by_wall_clock,ad87efc0-28f6-4acc-8ec2-a5f449e974bc,2025-03-30 21:56:02.547,2025-03-30 22:08:50.946,140,132,272,752.217,5.372978571428571,0.005,15.003,768.399,12.80665,12.53695,141,1

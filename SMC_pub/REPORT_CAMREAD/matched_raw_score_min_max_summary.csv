@@ -1,0 +1,3 @@
+metric,score,session_id,vr_id,eeg_id,test_version,elapsed_time_sec,vr_start_stamp,vr_end_stamp
+lowest_raw_score,0,396f53e6-e4aa-4d49-861d-5cab0e380592,2054,1229,2,4.744,2025-04-02 22:19:12.419,2025-04-02 22:19:17.163
+highest_raw_score,142,ad87efc0-28f6-4acc-8ec2-a5f449e974bc,272,273,1,15.003,2025-03-30 22:08:35.943,2025-03-30 22:08:50.946

@@ -1,0 +1,41 @@
+=== SANITY CHECKS ===
+Version mapping used throughout the script:
+  test_version == 1 -> Version A
+  test_version == 2 -> Version B
+Prediction rows kept: 830
+No outlier trimming is applied in this script.
+matched_vr_eeg_row_pairs is restricted to rows that appear in predictions.
+Normalized progress bins used: 10
+
+Truth consistency check between matched.performance and y_true:
+  max abs difference  = 0.000000469753
+  mean abs difference = 0.000000111326
+  allclose(atol=1e-6) = True
+
+Row counts by version on merged universe:
+  Version A rows (1): 432
+  Version B rows (2): 398
+
+=== DELTA-CURVE PEARSON ===
+Aligned bins used = 10
+Pearson r         = 0.856402
+Pearson p-value   = 0.00155848
+
+=== BLAND-ALTMAN ON DELTA CURVES ===
+Difference is defined as predicted delta minus true delta.
+Mean difference (bias) = 0.587656
+SD of difference       = 0.585579
+Lower 95% LoA          = -0.560079
+Upper 95% LoA          = 1.735391
+
+=== ALIGNED DELTA BINS ===
+bin  0 (center=0.05): true_delta=-0.550109, pred_delta=-1.290090, pred_minus_true=-0.739981
+bin  1 (center=0.15): true_delta=-1.471142, pred_delta=-0.795950, pred_minus_true=0.675191
+bin  2 (center=0.25): true_delta=1.174334, pred_delta=1.291415, pred_minus_true=0.117080
+bin  3 (center=0.35): true_delta=-0.982200, pred_delta=-0.031746, pred_minus_true=0.950454
+bin  4 (center=0.45): true_delta=0.295411, pred_delta=0.871052, pred_minus_true=0.575641
+bin  5 (center=0.55): true_delta=0.099489, pred_delta=1.074873, pred_minus_true=0.975384
+bin  6 (center=0.65): true_delta=-1.244227, pred_delta=-0.963683, pred_minus_true=0.280544
+bin  7 (center=0.75): true_delta=-2.712061, pred_delta=-1.481033, pred_minus_true=1.231028
+bin  8 (center=0.85): true_delta=-1.449420, pred_delta=-0.769501, pred_minus_true=0.679920
+bin  9 (center=0.95): true_delta=-1.703297, pred_delta=-0.572003, pred_minus_true=1.131295
